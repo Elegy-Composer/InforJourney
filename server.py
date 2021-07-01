@@ -1,22 +1,28 @@
 # all mighty miohitokiri
+from urllib3.poolmanager import PoolKey
+from Events import EventCanEnd
 import telepot
 from telepot.loop import MessageLoop
+from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
 from time import sleep
 from num2words import num2words
 from random import randint
 from enum import Enum
 from pprint import pprint
+from urllib3.util.request import make_headers
+
+from urllib3.util.url import PERCENT_RE
 
 from Player import Player
 from Map import GenMap
 from Data import Pending, Exps, Monsters, Bosses
 from Entity import Monster
-import sys
+from secret import TOKEN
 
 max_num = 4
 false = False
 true = True
-bot = telepot.Bot(sys.argv[1])
+bot = telepot.Bot(TOKEN)
 games = {}
 helpString = """join - Join a game
 start - Start a game
@@ -33,6 +39,10 @@ showstat - [(name)] Show stats of chosen entity (you by default)
 exp - Show your exp
 coin - SHow your coins
 help - Show game help"""
+
+EndMarkup = InlineKeyboardMarkup(inline_keyboard=[
+                   [InlineKeyboardButton(text='Leave', callback_data='end')],
+               ])
 
 def isTrue(str, none = False):
     if str is None:
@@ -55,6 +65,17 @@ def handle(msg):
     in_data = msg["text"].replace("@inforJourneyBot", "").split()
     games[gid].on_msg(in_data[0][1:], in_data[1:], msg["from"]["id"], msg["from"]["first_name"])
 
+def handle_callback(msg):
+    chat_id = msg['message']['chat']['id']
+    query_id, from_id, query_data = telepot.glance(msg, flavor='callback_query')
+    print('Callback Query:', query_id, from_id, query_data)
+    if chat_id in games:
+        games[chat_id].on_callback(query_data, from_id)
+    else:
+        print("Game did not start")
+    #bot.sendMessage(from_id, "已成功裝備" + query_data + "")
+    bot.answerCallbackQuery(query_id)
+
 
 class State(Enum):
     UNSTARTED = 0
@@ -74,18 +95,18 @@ class Game:
         self.state = State.UNSTARTED
         self.now_player_no = -1
 
-    def say(self, msg, parse = None, edit = False):
+    def say(self, msg, parse=None, edit=False, markup=None):
 
         print(msg)
         try:
             if edit:
                 edited = telepot.message_identifier(edit)
-                ret = bot.editMessageText(edited, edit['text'] + '\n' + msg, parse_mode=parse)
+                ret = bot.editMessageText(edited, edit['text'] + '\n' + msg, parse_mode=parse, reply_markup=markup)
             else:
-                ret = bot.sendMessage(self.id, msg, parse_mode = parse)
+                ret = bot.sendMessage(self.id, msg, parse_mode = parse, reply_markup=markup)
         except telepot.exception.TooManyRequestsError:
             sleep(5)
-            ret = self.say(msg, parse, edit)
+            ret = self.say(msg, parse, edit, markup)
         sleep(0.5) # sleep 1 sec for every say
         return ret
     def now_player(self):
@@ -159,8 +180,44 @@ class Game:
                       ),
             }[msg](self.state == State.UNSTARTED)
         except KeyError:
+            if(self.state != State.UNSTARTED):
+                if msg == "change2":
+                    kb_list = []
+                    for w in self.ids[uid].unused_weapons:
+                        kb_list.append([InlineKeyboardButton(text=w.name, callback_data="change "+w.name)])
+                    for w in self.ids[uid].unused_armors:
+                        kb_list.append([InlineKeyboardButton(text=w.name, callback_data="change "+w.name)])
+                    kb_list.append([InlineKeyboardButton(text="星爆氣流斬", callback_data="change 星爆氣流斬")])
+                    keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
+                    bot.sendMessage(self.id, "Jizz", reply_markup=keyboard)
+                elif msg == "retire":
+                    if self.ids[uid].pending != Pending.RETIRE:
+                        self.say("{},你確定要退出遊戲嗎?\n確定退出請再次輸入 /retire".format(self.ids[uid].name))
+                        self.ids[uid].pending = Pending.RETIRE
+                    else:
+                        self.say("{}離開了遊戲".format(self.ids[uid].name))
+                        idx = self.players.index(self.ids[uid])
+                        self.players.pop(idx)
+                        del self.ids[uid]
+                        if len(self.players) == 0:
+                            self.say("遊戲已結束")
+                            self.endgame()
+                            return
+                        if idx < self.now_player_no:
+                            self.now_player_no -= 1
+                        elif idx == self.now_player_no:
+                            self.next_player()
+                                         
+    def on_callback(self, query_data, uid):
+        query_data = query_data.split()
+        try:
+            if query_data[0] == "change" and len(query_data) > 1:
+                self.ids[uid].change2(query_data[1], self.say)
+            elif query_data[0] == "end":
+                if self.state == State.EVENT and self.now_player().id == uid:
+                    self.end()
+        except:
             pass
-        pass
     def showstat(self, entity):
         if isinstance(entity, str): # Find the Entity
             for player in self.players:
@@ -183,7 +240,7 @@ class Game:
             self.say("{}: 攻:{}, 防:{}, HP: {}".format(entity.name, entity.atk, entity.dfd, entity.hp))
     def start(self):
         if self.state != State.UNSTARTED:
-            return;
+            return
         if len(self.players) == 0:
             return
         self.state = State.STARTED
@@ -212,7 +269,10 @@ class Game:
                 if other_player.pos == player.pos:
                     player.meet(other_player, self.say)
         if self.Map[player.pos] is not None:
-            meet = player.meet(self.Map[player.pos], self.say, True)
+            if isinstance(self.Map[player.pos], EventCanEnd):
+                meet = player.meet(self.Map[player.pos], self.say, True, EndMarkup)
+            else:
+                meet = player.meet(self.Map[player.pos], self.say, True)
             if isinstance(meet, str):
                 self.endgame()
             elif meet:
@@ -230,7 +290,9 @@ class Game:
         self.__init__(self.id)
 
 
-MessageLoop(bot, handle).run_as_thread()
+MessageLoop(bot, {'chat': handle,
+                  'callback_query': handle_callback}
+).run_as_thread()
 
 # Keep the program running.
 while 1:

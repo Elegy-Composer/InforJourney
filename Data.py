@@ -4,6 +4,7 @@ class Pending(Enum):
     BLACKSMITH = 1
     SHOP = 2
     CHANGE = 3
+    RETIRE = 4
 Exps = [ int(100*2**(i/10)) for i in range(100) ]
 Weapons = {
     "短刀": (5, 0), 

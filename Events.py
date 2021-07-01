@@ -1,4 +1,6 @@
 from random import randrange
+
+from num2words.lang_AR import ARABIC_ONES
 from Data import Pending, BlacksmithParams, Shops, Potions
 from Item import Item, Weapon, Armor, Potion
 
@@ -7,8 +9,9 @@ class Chest:
     def __init__(self, coin, weapon):
         self.coin = coin
         self.weapon = weapon
-
-class Shop:
+class EventCanEnd:
+    pass
+class Shop(EventCanEnd):
     def __init__(self, phase):
         self.goods = []
         self.price = []
@@ -30,13 +33,16 @@ class Shop:
         del self.goods[no]
         del self.price[no]
         say("購買成功")
-        if isinstance(item, Item):
-            player.ask_change(item,say)
+        if isinstance(item, Weapon):
+            #player.ask_change(item,say)
+            player.unused_weapons.append(item)
+        elif isinstance(item, Armor):
+            player.unused_armors.append(item)
         else:
             player.potions.append(item)
         return True
 
-class Blacksmith:
+class Blacksmith(EventCanEnd):
     def __init__(self, phase):
         self.upgrade, self.multi, self.add = BlacksmithParams[phase]
     def get_cost(self, item):

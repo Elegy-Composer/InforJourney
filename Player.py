@@ -1,3 +1,4 @@
+from logging import makeLogRecord
 from Entity import Entity, Monster
 from Data import Positions
 from Gen import Gen
@@ -33,6 +34,8 @@ class Player(Entity):
         self.armor = Armor("皮衣")
         self.on_hand = deque() # to change 
         self.potions = []
+        self.unused_weapons = [Weapon("純白長槍"), Weapon("基加斯西達的樹枝"), Weapon("短刀")]
+        self.unused_armors = [Armor("披風"), Armor("聖甲蟲鍊墜")]
         self.pending = Pending.NONE
     def phase(self):
         return (self.pos-1)//10 if self.pos else 0
@@ -44,16 +47,17 @@ class Player(Entity):
                 break
     #def recieve(self)
     
-    def meet(self, event, orig_say, first_time = False):
+    def meet(self, event, orig_say, first_time=False, markup=None):
         print("meet")
-        said = None
+        said = False
         
-        def say(*x):
+        def say(*args, **kwargs):
             nonlocal said
-            if(said):
-                said = orig_say(*x, edit=said)
+            print("X:", args)
+            if said:
+                said = orig_say(*args, **kwargs, edit=said)
             else:
-                said = orig_say(*x)
+                said = orig_say(*args, **kwargs)
         
         if isinstance(event, Gen):
             return self.meet(event.gen(self.lvl,self.phase()),say)
@@ -88,7 +92,7 @@ class Player(Entity):
                 msgstr = '{0:{wd}}'.format(item.name,wd=15-chinese(item.name))
                 msg+= "{}. {}{:>5}\n".format(i,msgstr,price)
             msg+="```"
-            say(msg, "Markdown")
+            say(msg, "Markdown", markup=markup)
             self.pending = Pending.SHOP
             self.on_hand.append(event)
             return False
@@ -97,7 +101,8 @@ class Player(Entity):
                 say("{}抵達一間鐵匠鋪".format(self.name))
             say("======歡迎來到鐵匠鋪======\n"
                +"武器升級 攻防+{} 價格:{}金幣\n\n".format(event.upgrade, event.get_cost(self.weapon))
-               +"防具升級 攻防+{} 價格:{}金幣\n".format(event.upgrade, event.get_cost(self.armor)))
+               +"防具升級 攻防+{} 價格:{}金幣\n".format(event.upgrade, event.get_cost(self.armor)), 
+               markup=markup)
             self.pending = Pending.BLACKSMITH
             self.on_hand.append(event)
             return False
@@ -106,12 +111,14 @@ class Player(Entity):
             print("fok yu")
             if event.weapon is None :
                 say("{}在一個寶箱裡找到了 {} 金幣".format(self.name, event.coin))
-                return True
             else:
                 say("{}在一個寶箱裡找到了 {} 金幣和一個{}".format(self.name, event.coin, event.weapon.name))
-                self.ask_change(event.weapon,say)
-                return False
-            #ask weapon
+                #self.ask_change(event.weapon,say)
+                if isinstance(event.weapon):
+                    self.unused_weapons.append(event.weapon)
+                else:
+                    self.unused_armors.append(event.weapon)
+            return True
         else:
             pprint(event)
             return True
@@ -130,16 +137,36 @@ class Player(Entity):
         if change:
             say("{}已成功裝備{}".format(self.name,self.on_hand[0].name))
             if isinstance(self.on_hand[0], Weapon):
+                self.unused_weapons.append(self.weapon)
                 self.weapon = self.on_hand.popleft()
             else:
+                self.unused_armors.append(self.armor)
                 self.armor = self.on_hand.popleft()
         else:
-            self.on_hand.popleft()
+            if isinstance(self.on_hand[0], Weapon):
+                self.unused_weapons.append(self.on_hand.popleft())
+            else:
+                self.unused_armors.append(self.on_hand.popleft())
         self.pending = Pending.NONE
         print("miohitokiri")
         if self.on_hand:
             self.meet(self.on_hand[0], say)
-    
+    def change2(self, item_name, say):
+        for item in self.unused_armors:
+            if item.name == item_name:
+                self.unused_armors.append(self.armor)
+                self.armor = item
+                self.unused_armors.remove(item)
+                say("{}已成功裝備{}".format(self.name, item.name))
+                return
+        for item in self.unused_weapons:
+            if item.name == item_name:
+                self.unused_weapons.append(self.weapon)
+                self.weapon = item
+                self.unused_weapons.remove(item)
+                say("{}已成功裝備{}".format(self.name, item.name))
+                return
+        say("{}並未持有{}".format(self.name, item_name))
     def upgrade(self, item, say, times=1):
         blacksmith = self.on_hand.popleft()
         assert(isinstance(blacksmith,Blacksmith))
