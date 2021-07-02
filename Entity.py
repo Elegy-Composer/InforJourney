@@ -1,3 +1,6 @@
+from Item import Armor, Weapon
+
+
 class Entity:
     def __init__(self, name, hp, atk, dfd):
         self.name = name
@@ -41,8 +44,19 @@ class Entity:
 
 
 class Monster(Entity):
-    def __init__(self, name, atk, dfd, hp, exp, coin, is_boss):
+    def __init__(self, name, atk, dfd, hp, exp, coin):
         super(Monster, self).__init__(name, hp, atk, dfd)
         self.exp = exp
         self.coin = coin
-        self.is_boss = is_boss
+
+class Boss(Monster):
+    def __init__(self, name, atk, dfd, hp, exp, coin, drop_item):
+        super(Boss, self).__init__(name, atk, dfd, hp, exp, coin)
+        if drop_item[0]:
+            self.drop_item = (Weapon(drop_item[0]), Armor(drop_item[1]))
+        else:
+            self.drop_item = (None, None)
+    def drop(self):
+        dropped = self.drop_item
+        self.drop_item = (None, None)
+        return dropped

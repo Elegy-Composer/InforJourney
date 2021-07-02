@@ -1,5 +1,5 @@
 from logging import makeLogRecord
-from Entity import Entity, Monster
+from Entity import Boss, Entity, Monster
 from Data import Bosses, Positions
 from Gen import Gen
 from Events import Chest, Shop, Blacksmith
@@ -14,8 +14,10 @@ EndMarkup = InlineKeyboardMarkup(inline_keyboard=[
                ])
 
 def Entity_type(entity):
-    if isinstance(entity, Monster) :
-        return "首領" if entity.is_boss else "小怪"
+    if isinstance(entity, Boss):
+        return "首領"
+    elif isinstance(entity, Monster):
+        return "小怪"
     else:
         return "玩家"
 
@@ -73,11 +75,16 @@ class Player(Entity):
             if event.hp <= 0: # Win
                 if isinstance(event, Monster):
                     say("{}打倒了{} ，獲得了{}金幣和{}經驗值".format(self.name, event.name, event.coin, event.exp))
-                    if(event.is_boss):
+                    if(isinstance(event, Boss)):
                         self.level_to(min(25*(self.phase()+1) + 1, 100), say)
                         if(self.phase() == 3):
                             say("恭喜{}通關遊戲".format(self.name))
                             return "Starburst"
+                        drop_weapon, drop_armor = event.drop()
+                        if drop_weapon:
+                            self.unused_weapons.append(drop_weapon)
+                            self.unused_armors.append(drop_armor)
+                            say("{}獲得最後一擊獎勵: {}, {}".format(self.name, drop_weapon.name, drop_armor.name))
                     self.add_exp(event.exp, say)
                     self.coin += event.coin
                 else:
@@ -88,7 +95,7 @@ class Player(Entity):
                 self.restart() 
             else :
                 say("竟然是百年難得一見的平手")
-                if isinstance(event, Monster) and event.is_boss:
+                if isinstance(event, Boss):
                     self.restart()
             return True
         if isinstance(event, Shop):

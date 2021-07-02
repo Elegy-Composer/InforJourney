@@ -1,6 +1,6 @@
 from Events import Shop, Blacksmith
-from Data import Bosses as Boss
-from Entity import Monster
+from Data import Bosses, BossDropItem
+from Entity import Boss
 from Gen import ChestGen, MonsterGen
 from Data import Positions
 
@@ -9,7 +9,7 @@ def GenMap():
     l = list(range(41))
     for i in Positions["Boss"]:
         l.remove(i)
-        Map[i] = Monster(*Boss[i//10-1][0:7])
+        Map[i] = Boss(*Bosses[i//10-1][0:6], BossDropItem[i//10-1])
 
     for i in Positions["Shop"]:
         l.remove(i)

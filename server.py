@@ -16,7 +16,7 @@ from urllib3.util.url import PERCENT_RE
 from Player import Player
 from Map import GenMap
 from Data import Pending, Exps, Monsters, Bosses
-from Entity import Monster
+from Entity import Monster, Boss
 from secret import TOKEN
 
 max_num = 4
@@ -228,12 +228,12 @@ class Game:
             else:
                 for i in Monsters:
                     if entity in i:
-                        entity = Monster(entity, *i[entity][0:6])
+                        entity = Monster(entity, *i[entity][0:5])
                         break
                 else:
                     for boss in Bosses:
                         if boss[0] == entity:
-                            entity = Monster(*boss[0:7])
+                            entity = Boss(*boss[0:6], (None, None))
                     
         if isinstance(entity, Player) :
             self.say("{}: 等級 {}\n攻:{}, 防:{}, \nHP: {}, 最大HP: {}\n 武器:{}\n攻+{} 防+{}\n 防具:{}\n攻+{} 防+{}".format(entity.name, entity.lvl, entity.atk, entity.dfd, entity.hp, entity.maxhp, entity.weapon.name, entity.weapon.atk, entity.weapon.dfd, entity.armor.name, entity.armor.atk, entity.armor.dfd))
