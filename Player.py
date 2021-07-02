@@ -1,12 +1,17 @@
 from logging import makeLogRecord
 from Entity import Entity, Monster
-from Data import Positions
+from Data import Bosses, Positions
 from Gen import Gen
 from Events import Chest, Shop, Blacksmith
 from Data import Pending, Exps, LevelUp
 from Item import Weapon, Armor, Item
 from pprint import pprint
 from collections import deque
+from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
+
+EndMarkup = InlineKeyboardMarkup(inline_keyboard=[
+                   [InlineKeyboardButton(text='Leave', callback_data='end')],
+               ])
 
 def Entity_type(entity):
     if isinstance(entity, Monster) :
@@ -34,7 +39,7 @@ class Player(Entity):
         self.armor = Armor("皮衣")
         self.on_hand = deque() # to change 
         self.potions = []
-        self.unused_weapons = [Weapon("純白長槍"), Weapon("基加斯西達的樹枝"), Weapon("短刀")]
+        self.unused_weapons = [Weapon("純白長槍"), Weapon("基加斯西達的樹枝")]
         self.unused_armors = [Armor("披風"), Armor("聖甲蟲鍊墜")]
         self.pending = Pending.NONE
     def phase(self):
@@ -47,7 +52,7 @@ class Player(Entity):
                 break
     #def recieve(self)
     
-    def meet(self, event, orig_say, first_time=False, markup=None):
+    def meet(self, event, orig_say, first_time=False):
         print("meet")
         said = False
         
@@ -83,6 +88,8 @@ class Player(Entity):
                 self.restart() 
             else :
                 say("竟然是百年難得一見的平手")
+                if isinstance(event, Monster) and event.is_boss:
+                    self.restart()
             return True
         if isinstance(event, Shop):
             if first_time:
@@ -92,7 +99,7 @@ class Player(Entity):
                 msgstr = '{0:{wd}}'.format(item.name,wd=15-chinese(item.name))
                 msg+= "{}. {}{:>5}\n".format(i,msgstr,price)
             msg+="```"
-            say(msg, "Markdown", markup=markup)
+            say(msg, "Markdown", markup=EndMarkup)
             self.pending = Pending.SHOP
             self.on_hand.append(event)
             return False
@@ -102,7 +109,7 @@ class Player(Entity):
             say("======歡迎來到鐵匠鋪======\n"
                +"武器升級 攻防+{} 價格:{}金幣\n\n".format(event.upgrade, event.get_cost(self.weapon))
                +"防具升級 攻防+{} 價格:{}金幣\n".format(event.upgrade, event.get_cost(self.armor)), 
-               markup=markup)
+               markup=EndMarkup)
             self.pending = Pending.BLACKSMITH
             self.on_hand.append(event)
             return False
@@ -114,7 +121,7 @@ class Player(Entity):
             else:
                 say("{}在一個寶箱裡找到了 {} 金幣和一個{}".format(self.name, event.coin, event.weapon.name))
                 #self.ask_change(event.weapon,say)
-                if isinstance(event.weapon):
+                if isinstance(event.weapon, Weapon):
                     self.unused_weapons.append(event.weapon)
                 else:
                     self.unused_armors.append(event.weapon)
@@ -151,22 +158,20 @@ class Player(Entity):
         print("miohitokiri")
         if self.on_hand:
             self.meet(self.on_hand[0], say)
-    def change2(self, item_name, say):
+    def change2(self, item_name):
         for item in self.unused_armors:
             if item.name == item_name:
                 self.unused_armors.append(self.armor)
                 self.armor = item
                 self.unused_armors.remove(item)
-                say("{}已成功裝備{}".format(self.name, item.name))
-                return
+                return item.name
         for item in self.unused_weapons:
             if item.name == item_name:
                 self.unused_weapons.append(self.weapon)
                 self.weapon = item
                 self.unused_weapons.remove(item)
-                say("{}已成功裝備{}".format(self.name, item.name))
-                return
-        say("{}並未持有{}".format(self.name, item_name))
+                return item.name
+        return False
     def upgrade(self, item, say, times=1):
         blacksmith = self.on_hand.popleft()
         assert(isinstance(blacksmith,Blacksmith))
@@ -207,7 +212,7 @@ class Player(Entity):
             self.meet(self.on_hand[0], say)
         
     def recieve(self, money):
-        self.coin+= money
+        self.coin += money
         # hmm
     def use_potion(self, potion, phase):
         self.hp = min(self.maxhp, self.hp + 0) # fill heel hp
@@ -215,6 +220,8 @@ class Player(Entity):
     def restart(self):
         self.pos = self.phase()*10
         self.hp = self.maxhp
+        for i in self.on_hand:
+            print("On hand event:", i)
         pass
     def add_exp(self, exp, say):
         self.exp += exp

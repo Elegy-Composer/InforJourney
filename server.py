@@ -40,10 +40,6 @@ exp - Show your exp
 coin - SHow your coins
 help - Show game help"""
 
-EndMarkup = InlineKeyboardMarkup(inline_keyboard=[
-                   [InlineKeyboardButton(text='Leave', callback_data='end')],
-               ])
-
 def isTrue(str, none = False):
     if str is None:
         return none
@@ -69,8 +65,9 @@ def handle_callback(msg):
     chat_id = msg['message']['chat']['id']
     query_id, from_id, query_data = telepot.glance(msg, flavor='callback_query')
     print('Callback Query:', query_id, from_id, query_data)
+    identifier = (chat_id, msg['message']['message_id'])
     if chat_id in games:
-        games[chat_id].on_callback(query_data, from_id)
+        games[chat_id].on_callback(query_data, from_id, identifier)
     else:
         print("Game did not start")
     #bot.sendMessage(from_id, "已成功裝備" + query_data + "")
@@ -184,12 +181,12 @@ class Game:
                 if msg == "change2":
                     kb_list = []
                     for w in self.ids[uid].unused_weapons:
-                        kb_list.append([InlineKeyboardButton(text=w.name, callback_data="change "+w.name)])
+                        kb_list.append([InlineKeyboardButton(text=w.name, callback_data="change "+str(uid)+" "+w.name)])
                     for w in self.ids[uid].unused_armors:
-                        kb_list.append([InlineKeyboardButton(text=w.name, callback_data="change "+w.name)])
-                    kb_list.append([InlineKeyboardButton(text="星爆氣流斬", callback_data="change 星爆氣流斬")])
+                        kb_list.append([InlineKeyboardButton(text=w.name, callback_data="change "+str(uid)+" "+w.name)])
+                    #kb_list.append([InlineKeyboardButton(text="星爆氣流斬", callback_data="change 星爆氣流斬")])
                     keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
-                    bot.sendMessage(self.id, "Jizz", reply_markup=keyboard)
+                    bot.sendMessage(self.id, "{}, 請選擇更換裝備".format(self.ids[uid].name), reply_markup=keyboard)
                 elif msg == "retire":
                     if self.ids[uid].pending != Pending.RETIRE:
                         self.say("{},你確定要退出遊戲嗎?\n確定退出請再次輸入 /retire".format(self.ids[uid].name))
@@ -200,7 +197,6 @@ class Game:
                         self.players.pop(idx)
                         del self.ids[uid]
                         if len(self.players) == 0:
-                            self.say("遊戲已結束")
                             self.endgame()
                             return
                         if idx < self.now_player_no:
@@ -208,11 +204,16 @@ class Game:
                         elif idx == self.now_player_no:
                             self.next_player()
                                          
-    def on_callback(self, query_data, uid):
+    def on_callback(self, query_data, uid, identifier):
         query_data = query_data.split()
         try:
-            if query_data[0] == "change" and len(query_data) > 1:
-                self.ids[uid].change2(query_data[1], self.say)
+            if query_data[0] == "change" and len(query_data) > 2:
+                if uid == int(query_data[1]):
+                    changed = self.ids[uid].change2(query_data[2])
+                    if changed:
+                        bot.editMessageText(identifier, "{}已成功裝備{}".format(self.ids[uid].name, changed))
+                else:
+                    print(uid, query_data)
             elif query_data[0] == "end":
                 if self.state == State.EVENT and self.now_player().id == uid:
                     self.end()
@@ -269,10 +270,7 @@ class Game:
                 if other_player.pos == player.pos:
                     player.meet(other_player, self.say)
         if self.Map[player.pos] is not None:
-            if isinstance(self.Map[player.pos], EventCanEnd):
-                meet = player.meet(self.Map[player.pos], self.say, True, EndMarkup)
-            else:
-                meet = player.meet(self.Map[player.pos], self.say, True)
+            meet = player.meet(self.Map[player.pos], self.say, True)
             if isinstance(meet, str):
                 self.endgame()
             elif meet:
@@ -287,6 +285,7 @@ class Game:
         except:
             self.say("參數錯誤")
     def endgame(self):
+        self.say("遊戲已結束")
         self.__init__(self.id)
 
 
