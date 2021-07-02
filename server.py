@@ -31,11 +31,13 @@ map - Show the game map
 pos - Show Your positon
 buy - [no] Buy an item in shop
 upgrade - [weapon/armor] Upgrade weapon or armor in blacksmith shop
-change - [yes/no] Change weapon or armor
+change - Change weapon or armor
 end - Leave shop or blacksmith shop
 drink - [no] Drink a potion
+mystat - Show your status
 showpotion - Show all your potions
-showstat - [(name)] Show stats of chosen entity (you by default)
+showstat - Show status of chosen entity
+retire - retire from game
 exp - Show your exp
 coin - SHow your coins
 help - Show game help"""
@@ -140,19 +142,13 @@ class Game:
                         self.now_player().pending != Pending.BLACKSMITH or
                             self.now_player().upgrade(args[0],self.say, 1 if len(args) < 2 else args[1])
                            ),
-                "change": (lambda x:
-                           print(self.now_player().pending ) and 0 or
-                    self.state != State.EVENT or self.now_player().id != uid or # unless
-                        self.now_player().pending != Pending.CHANGE or
-                            self.now_player().change(isTrue(args[0], True), self.say)
-                           ),
                 "buy": (lambda x:
                     self.state != State.EVENT or self.now_player().id != uid or # unless
                         self.now_player().pending != Pending.SHOP or
                             self.now_player().purchase(int(args[0]),self.say)
                            ),
-                "showstat": (lambda x:
-                    x or self.showstat(self.ids[uid] if args == [] else args[0])
+                "mystat": (lambda x:
+                    x or self.mystat(self.ids[uid])
                             ),
                 "end": (lambda x:
                     self.state != State.EVENT or self.now_player().id != uid or
@@ -178,7 +174,7 @@ class Game:
             }[msg](self.state == State.UNSTARTED)
         except KeyError:
             if(self.state != State.UNSTARTED):
-                if msg == "change2":
+                if msg == "change":
                     kb_list = []
                     for w in self.ids[uid].unused_weapons:
                         kb_list.append([InlineKeyboardButton(text=w.name, callback_data="change "+str(uid)+" "+w.name)])
@@ -203,7 +199,14 @@ class Game:
                             self.now_player_no -= 1
                         elif idx == self.now_player_no:
                             self.next_player()
-                                         
+                elif msg == "showstat":
+                    kb_list = [
+                        [InlineKeyboardButton(text="小怪", callback_data="showstat monster")],
+                        [InlineKeyboardButton(text="首領", callback_data="showstat boss")],
+                        [InlineKeyboardButton(text="玩家", callback_data="showstat player")]
+                    ]
+                    keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
+                    bot.sendMessage(self.id, "請選擇種類", reply_markup=keyboard)
     def on_callback(self, query_data, uid, identifier):
         query_data = query_data.split()
         try:
@@ -217,28 +220,63 @@ class Game:
             elif query_data[0] == "end":
                 if self.state == State.EVENT and self.now_player().id == uid:
                     self.end()
+            elif query_data[0] == "showstat":
+                try:
+                    if len(query_data) > 3:
+                        self.show_monster(query_data[3], Monsters[int(query_data[2])][query_data[3]])
+                    if len(query_data) > 2:
+                        kb_list = []
+                        if query_data[1] == "monster":
+                            i = int(query_data[2])
+                            for name in Monsters[i]:
+                                kb_list.append([InlineKeyboardButton(text=name, callback_data="showstat monster "+query_data[2]+" "+name)])
+                            kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat monster")])
+                            keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
+                            bot.editMessageText(identifier, "請選擇", reply_markup=keyboard)
+                        else:
+                            i = int(query_data[2])
+                            self.show_monster(Bosses[i][0], Bosses[i][1:])
+                    elif len(query_data) > 1:
+                        kb_list = []
+                        if query_data[1] == "player":
+                            for player in self.players:
+                                kb_list.append([InlineKeyboardButton(text=player.name, callback_data="showplayer "+str(player.id))])
+                        elif query_data[1] == "monster":
+                            for i in range(4):
+                                kb_list.append([InlineKeyboardButton(text="階段"+str(i+1), callback_data="showstat monster "+str(i))])
+                        else:
+                            for i in range(4):
+                                kb_list.append([InlineKeyboardButton(text=Bosses[i][0], callback_data="showstat boss "+str(i))])
+                        kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
+                        keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
+                        bot.editMessageText(identifier, "請選擇", reply_markup=keyboard)
+                    else:
+                        kb_list = [
+                            [InlineKeyboardButton(text="小怪", callback_data="showstat monster")],
+                            [InlineKeyboardButton(text="首領", callback_data="showstat boss")],
+                            [InlineKeyboardButton(text="玩家", callback_data="showstat player")]
+                        ]
+                        keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
+                        bot.editMessageText(identifier, "請選擇種類", reply_markup=keyboard)
+                except:
+                    pass
+            elif query_data[0] == "showplayer" and len(query_data)>1:
+                try:
+                    show_player_id = int(query_data[1])
+                    self.show_player(self.ids[show_player_id])
+                except:
+                    pass
         except:
             pass
-    def showstat(self, entity):
-        if isinstance(entity, str): # Find the Entity
-            for player in self.players:
-                if player.name == entity:
-                    entity = player
-                    break
-            else:
-                for i in Monsters:
-                    if entity in i:
-                        entity = Monster(entity, *i[entity][0:5])
-                        break
-                else:
-                    for boss in Bosses:
-                        if boss[0] == entity:
-                            entity = Boss(*boss[0:6], (None, None))
-                    
-        if isinstance(entity, Player) :
-            self.say("{}: 等級 {}\n攻:{}, 防:{}, \nHP: {}, 最大HP: {}\n 武器:{}\n攻+{} 防+{}\n 防具:{}\n攻+{} 防+{}".format(entity.name, entity.lvl, entity.atk, entity.dfd, entity.hp, entity.maxhp, entity.weapon.name, entity.weapon.atk, entity.weapon.dfd, entity.armor.name, entity.armor.atk, entity.armor.dfd))
-        else:
-            self.say("{}: 攻:{}, 防:{}, HP: {}".format(entity.name, entity.atk, entity.dfd, entity.hp))
+    def show_player(self, entity):
+        self.say("{}: 等級 {}\n攻:{}, 防:{}, \nHP: {}, 最大HP: {}\n 武器:{}\n攻+{} 防+{}\n 防具:{}\n攻+{} 防+{}".format(entity.name, entity.lvl, entity.atk, entity.dfd, entity.hp, entity.maxhp, entity.weapon.name, entity.weapon.atk, entity.weapon.dfd, entity.armor.name, entity.armor.atk, entity.armor.dfd))
+    def show_monster(self, name, monster_data):
+        self.say("{}: 攻:{}, 防:{}, HP: {}\n經驗值: {}, 金幣: {}\n出現等級: {} ~ {}".format(
+            name, monster_data[0], 
+            monster_data[1], monster_data[2], monster_data[3], 
+            monster_data[4], monster_data[5], monster_data[6]))
+    def mystat(self, entity):
+        self.say("{}: 等級 {}\n攻:{}, 防:{}, \nHP: {}, 最大HP: {}\n 武器:{}\n攻+{} 防+{}\n 防具:{}\n攻+{} 防+{}".format(entity.name, entity.lvl, entity.atk, entity.dfd, entity.hp, entity.maxhp, entity.weapon.name, entity.weapon.atk, entity.weapon.dfd, entity.armor.name, entity.armor.atk, entity.armor.dfd))
     def start(self):
         if self.state != State.UNSTARTED:
             return
