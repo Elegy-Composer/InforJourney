@@ -15,7 +15,7 @@ from urllib3.util.url import PERCENT_RE
 
 from Player import Player
 from Map import GenMap
-from Data import Pending, Exps, Monsters, Bosses
+from Data import Armors, Pending, Exps, Monsters, Bosses, Potions, Weapons
 from Entity import Monster, Boss
 from secret import TOKEN
 
@@ -24,6 +24,8 @@ false = False
 true = True
 bot = telepot.Bot(TOKEN)
 games = {}
+weapon_list = list(Weapons.items())
+armor_list = list(Armors.items())
 helpString = """join - Join a game
 start - Start a game
 jizz - Throw a die to move
@@ -39,7 +41,7 @@ showpotion - Show all your potions
 showstat - Show status of chosen entity
 retire - retire from game
 exp - Show your exp
-coin - SHow your coins
+coin - Show your coins
 help - Show game help"""
 
 def isTrue(str, none = False):
@@ -181,8 +183,11 @@ class Game:
                     for w in self.ids[uid].unused_armors:
                         kb_list.append([InlineKeyboardButton(text=w.name, callback_data="change "+str(uid)+" "+w.name)])
                     #kb_list.append([InlineKeyboardButton(text="星爆氣流斬", callback_data="change 星爆氣流斬")])
-                    keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
-                    bot.sendMessage(self.id, "{}, 請選擇更換裝備".format(self.ids[uid].name), reply_markup=keyboard)
+                    if kb_list:
+                        keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
+                        bot.sendMessage(self.id, "{}, 請選擇更換裝備".format(self.ids[uid].name), reply_markup=keyboard)
+                    else:
+                        bot.sendMessage(self.id, "{}沒有可更換的裝備".format(self.ids[uid].name))
                 elif msg == "retire":
                     if self.ids[uid].pending != Pending.RETIRE:
                         self.say("{},你確定要退出遊戲嗎?\n確定退出請再次輸入 /retire".format(self.ids[uid].name))
@@ -203,7 +208,10 @@ class Game:
                     kb_list = [
                         [InlineKeyboardButton(text="小怪", callback_data="showstat monster")],
                         [InlineKeyboardButton(text="首領", callback_data="showstat boss")],
-                        [InlineKeyboardButton(text="玩家", callback_data="showstat player")]
+                        [InlineKeyboardButton(text="玩家", callback_data="showstat player")],
+                        [InlineKeyboardButton(text="武器", callback_data="showstat weapon 0")],
+                        [InlineKeyboardButton(text="防具", callback_data="showstat armor 0")],
+                        [InlineKeyboardButton(text="道具", callback_data="showstat item")]
                     ]
                     keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
                     bot.sendMessage(self.id, "請選擇種類", reply_markup=keyboard)
@@ -223,7 +231,8 @@ class Game:
             elif query_data[0] == "showstat":
                 try:
                     if len(query_data) > 3:
-                        self.show_monster(query_data[3], Monsters[int(query_data[2])][query_data[3]])
+                        if query_data[1] == "monster":
+                            self.show_monster(query_data[3], Monsters[int(query_data[2])][query_data[3]])
                     if len(query_data) > 2:
                         kb_list = []
                         if query_data[1] == "monster":
@@ -233,20 +242,51 @@ class Game:
                             kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat monster")])
                             keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
                             bot.editMessageText(identifier, "請選擇", reply_markup=keyboard)
-                        else:
+                        elif query_data[1] == "weapon":
+                            start = int(query_data[2])
+                            if start:
+                                kb_list.append([InlineKeyboardButton(text="<<", callback_data="showstat weapon "+str(start-1))])
+                            for i in range(start*6, min(start*6+6, len(weapon_list))):
+                                name, param = weapon_list[i]
+                                kb_list.append([InlineKeyboardButton(text=name, callback_data="showweapon "+name)])
+                            if start*6 + 6 < len(weapon_list):
+                                kb_list.append([InlineKeyboardButton(text=">>", callback_data="showstat weapon "+str(start+1))])
+                            kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
+                            keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
+                            bot.editMessageText(identifier, "請選擇", reply_markup=keyboard)
+                        elif query_data[1] == "armor":
+                            start = int(query_data[2])
+                            if start:
+                                kb_list.append([InlineKeyboardButton(text="<<", callback_data="showstat armor "+str(start-1))])
+                            for i in range(start*6, min(start*6+6, len(armor_list))):
+                                name, param = armor_list[i]
+                                kb_list.append([InlineKeyboardButton(text=name, callback_data="showarmor "+name)])
+                            if start*6 + 6 < len(armor_list):
+                                kb_list.append([InlineKeyboardButton(text=">>", callback_data="showstat armor "+str(start+1))])
+                            kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
+                            keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
+                            bot.editMessageText(identifier, "請選擇", reply_markup=keyboard)
+                        elif query_data[1] == "boss":
                             i = int(query_data[2])
                             self.show_monster(Bosses[i][0], Bosses[i][1:])
+                        elif query_data[1] == "item":
+                            if query_data[2] in Potions:
+                                potion = Potions[query_data[2]]
+                                self.say("恢復"+"/".join(map(lambda x: str(x), potion))+"點生命")
                     elif len(query_data) > 1:
                         kb_list = []
                         if query_data[1] == "player":
                             for player in self.players:
                                 kb_list.append([InlineKeyboardButton(text=player.name, callback_data="showplayer "+str(player.id))])
+                        elif query_data[1] == "boss":
+                            for i in range(4):
+                                kb_list.append([InlineKeyboardButton(text=Bosses[i][0], callback_data="showstat boss "+str(i))])
+                        elif query_data[1] == "item":
+                            for p in Potions:
+                                kb_list.append([InlineKeyboardButton(text=p, callback_data="showstat item "+p)])
                         elif query_data[1] == "monster":
                             for i in range(4):
                                 kb_list.append([InlineKeyboardButton(text="階段"+str(i+1), callback_data="showstat monster "+str(i))])
-                        else:
-                            for i in range(4):
-                                kb_list.append([InlineKeyboardButton(text=Bosses[i][0], callback_data="showstat boss "+str(i))])
                         kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
                         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
                         bot.editMessageText(identifier, "請選擇", reply_markup=keyboard)
@@ -254,7 +294,10 @@ class Game:
                         kb_list = [
                             [InlineKeyboardButton(text="小怪", callback_data="showstat monster")],
                             [InlineKeyboardButton(text="首領", callback_data="showstat boss")],
-                            [InlineKeyboardButton(text="玩家", callback_data="showstat player")]
+                            [InlineKeyboardButton(text="玩家", callback_data="showstat player")],
+                            [InlineKeyboardButton(text="武器", callback_data="showstat weapon 0")],
+                            [InlineKeyboardButton(text="防具", callback_data="showstat armor 0")],
+                            [InlineKeyboardButton(text="道具", callback_data="showstat item")]
                         ]
                         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
                         bot.editMessageText(identifier, "請選擇種類", reply_markup=keyboard)
@@ -266,6 +309,10 @@ class Game:
                     self.show_player(self.ids[show_player_id])
                 except:
                     pass
+            elif query_data[0] == "showweapon" and len(query_data)>1:
+                self.say("{}:\n攻:{} 防:{}".format(query_data[1], *Weapons[query_data[1]]))
+            elif query_data[0] == "showarmor" and len(query_data)>1:
+                self.say("{}:\n攻:{} 防:{}".format(query_data[1], *Armors[query_data[1]]))
         except:
             pass
     def show_player(self, entity):

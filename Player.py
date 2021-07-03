@@ -41,8 +41,8 @@ class Player(Entity):
         self.armor = Armor("皮衣")
         self.on_hand = deque() # to change 
         self.potions = []
-        self.unused_weapons = [Weapon("純白長槍"), Weapon("基加斯西達的樹枝")]
-        self.unused_armors = [Armor("披風"), Armor("聖甲蟲鍊墜")]
+        self.unused_weapons = []
+        self.unused_armors = []
         self.pending = Pending.NONE
     def phase(self):
         return (self.pos-1)//10 if self.pos else 0
@@ -70,7 +70,8 @@ class Player(Entity):
             return self.meet(event.gen(self.lvl,self.phase()),say)
         if isinstance(event,Entity):
             say("{}遇到了{} {}".format(self.name, Entity_type(event), event.name))
-            res = self.fight(event, say)
+            res = self.fight(event)
+            say(res)
             print(self.hp, event.hp)
             if event.hp <= 0: # Win
                 if isinstance(event, Monster):

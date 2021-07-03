@@ -1,3 +1,4 @@
+from random import uniform
 from Item import Armor, Weapon
 
 
@@ -8,7 +9,7 @@ class Entity:
         self.atk = atk
         self.dfd = dfd
         
-    def fight(self, B, say):
+    def fight(self, B):
         A = self
         a_dmg = A.atk - B.dfd
         b_dmg = B.atk - A.dfd
@@ -27,15 +28,17 @@ class Entity:
         if a_dmg == 0 and b_dmg == 0:
             print("垃圾互打")
             return;
+        fight_str = ""
         while 1:
             # Attack Phase
-            B.hp -= a_dmg
-            say("{} 攻擊 {}，{} 剩下 {} 滴血".format(A.name, B.name, B.name, max(B.hp, 0)))
+            dmg = round(a_dmg * uniform(0.9, 1.1))
+            B.hp -= dmg
+            fight_str += "{} 攻擊 {}，{} 剩下 {} 滴血\n".format(A.name, B.name, B.name, max(B.hp, 0))
             
 
             # HP Judge Phase
             if B.hp <= 0:
-                return A # Return the Winner!!!!!
+                return fight_str
 
             A, B = B, A # Malignant
             a_dmg, b_dmg = b_dmg, a_dmg
