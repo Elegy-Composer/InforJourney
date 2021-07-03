@@ -28,7 +28,7 @@ class MonsterGen(Gen):
         for name in Monsters[phase]:
             atk, dfd, hp, exp, coin, mini, maxi = Monsters[phase][name]
             if mini <= player_level <= maxi:
-                l.append(Monster(name, atk, dfd, hp, exp * 5, coin))
+                l.append(Monster(name, atk, dfd, hp, exp, coin))
         pprint(choice(l))
         print("好氣喔")
         return choice(l)

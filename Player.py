@@ -77,7 +77,7 @@ class Player(Entity):
                 if isinstance(event, Monster):
                     say("{}打倒了{} ，獲得了{}金幣和{}經驗值".format(self.name, event.name, event.coin, event.exp))
                     if(isinstance(event, Boss)):
-                        self.level_to(min(25*(self.phase()+1) + 1, 100), say)
+                        self.level_to(min(10*(self.phase()+1) + 1, 40), say)
                         if(self.phase() == 3):
                             say("恭喜{}通關遊戲".format(self.name))
                             return "Starburst"
@@ -233,21 +233,22 @@ class Player(Entity):
         pass
     def add_exp(self, exp, say):
         self.exp += exp
-        while self.exp >= Exps[self.lvl]:
+        while self.lvl < len(Exps) and self.exp >= Exps[self.lvl]:
             say("{}升到了{}級喔喔喔喔喔".format(self.name,self.lvl+1))
             self.exp -= Exps[self.lvl]
+            self.atk += LevelUp[self.lvl][0]
+            self.dfd += LevelUp[self.lvl][1]
+            self.maxhp += LevelUp[self.lvl][2]
             self.lvl += 1
-            self.atk += LevelUp[self.phase()][0]
-            self.dfd += LevelUp[self.phase()][1]
-            self.maxhp += LevelUp[self.phase()][2]
             self.hp = self.maxhp
     def level_to(self, level, say):
         if self.lvl >= level:
             return
-        self.atk += LevelUp[self.phase()][0] * (level - self.lvl)
-        self.dfd += LevelUp[self.phase()][1] * (level - self.lvl)
-        self.maxhp += LevelUp[self.phase()][2] * (level - self.lvl)
+        while self.lvl < len(Exps) and self.lvl < level:
+            self.atk += LevelUp[self.lvl][0]
+            self.dfd += LevelUp[self.lvl][1]
+            self.maxhp += LevelUp[self.lvl][2]
+            self.lvl += 1
         self.hp = self.maxhp
         self.exp = 0
-        self.lvl = level
         say("{}升到了{}級喔喔喔喔喔".format(self.name,self.lvl))

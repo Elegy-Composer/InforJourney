@@ -150,19 +150,13 @@ class Game:
                             self.now_player().purchase(int(args[0]),self.say)
                            ),
                 "mystat": (lambda x:
-                    x or self.mystat(self.ids[uid])
+                    x or self.show_player(self.ids[uid])
                             ),
                 "end": (lambda x:
                     self.state != State.EVENT or self.now_player().id != uid or
                         self.now_player().pending == Pending.CHANGE or
                         self.end()
                        ),
-                "exp": (lambda x:
-                    x or self.say("{}目前經驗值：{}\n升級所需經驗值：{}".format(self.ids[uid].name, self.ids[uid].exp, Exps[self.ids[uid].lvl]))
-                      ),
-                "coin": (lambda x:
-                    x or self.say("{}現在有 {} 金幣".format(self.ids[uid].name, self.ids[uid].coin))
-                      ),
                 "help": (lambda x:
                     x or self.say(helpString)
                       ),
@@ -316,7 +310,17 @@ class Game:
         except:
             pass
     def show_player(self, entity):
-        self.say("{}: 等級 {}\n攻:{}, 防:{}, \nHP: {}, 最大HP: {}\n 武器:{}\n攻+{} 防+{}\n 防具:{}\n攻+{} 防+{}".format(entity.name, entity.lvl, entity.atk, entity.dfd, entity.hp, entity.maxhp, entity.weapon.name, entity.weapon.atk, entity.weapon.dfd, entity.armor.name, entity.armor.atk, entity.armor.dfd))
+        player_str = "{name}: 等級:{}\n攻:{}, 防:{}, \nHP: {}, 最大HP: {}\n"
+        player_str += "武器:{}\n  攻+{} 防+{}\n防具:{}\n  攻+{} 防+{}\n"
+        player_str += "{name}目前經驗值:{}\n升級所需經驗值:{}\n"
+        player_str += "{name}現在有 {} 金幣"
+        self.say(player_str.format(
+            entity.lvl, entity.atk, entity.dfd, 
+            entity.hp, entity.maxhp, entity.weapon.name, 
+            entity.weapon.atk, entity.weapon.dfd, entity.armor.name, 
+            entity.armor.atk, entity.armor.dfd, 
+            entity.exp, Exps[entity.lvl] if entity.lvl < len(Exps) else "-",
+            entity.coin, name=entity.name))
     def show_monster(self, name, monster_data):
         self.say("{}: 攻:{}, 防:{}, HP: {}\n經驗值: {}, 金幣: {}\n出現等級: {} ~ {}".format(
             name, monster_data[0], 
