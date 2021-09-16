@@ -35,7 +35,7 @@ class Player(Entity):
         self.exp = 0
         self.maxhp = 30
         self.lvl = 1
-        self.coin = 100
+        self.coin = 10
         self.pos = 0
         self.weapon = Weapon("短刀")
         self.armor = Armor("皮衣")
