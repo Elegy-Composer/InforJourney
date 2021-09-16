@@ -117,14 +117,6 @@ class Game:
         print(args)
         try:
             {
-                "join": (lambda x:
-                    not x or (uid in self.ids) or  # unless
-                        self.players.append(Player(uid, name)) and 0 or
-                        self.ids.update({uid : self.players[-1]}) and 0 or
-                        self.say("{}加入了遊戲".format(name),"Markdown") and 0 or
-                        len(self.players) != 4 or  # unless
-                            self.start()
-                       ),
                 "start": (lambda x:
                     self.start()
                         ),
@@ -169,6 +161,20 @@ class Game:
                       ),
             }[msg](self.state == State.UNSTARTED)
         except KeyError:
+            if msg == "join":
+                if self.state == State.UNSTARTED:
+                    if uid not in self.ids:
+                        self.players.append(Player(uid, name))
+                        self.ids.update({uid : self.players[-1]})
+                        self.say("{}加入了遊戲".format(name),"Markdown")
+                        if len(self.players) == 4:
+                            self.start()
+                else:
+                    if len(self.players) <= 4 and uid not in self.ids:
+                        self.players.append(Player(uid, name))
+                        self.ids.update({uid : self.players[-1]})
+                        self.say("{}加入了遊戲".format(name),"Markdown")
+                return
             if(self.state != State.UNSTARTED):
                 if msg == "change":
                     kb_list = []
