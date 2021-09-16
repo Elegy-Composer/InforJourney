@@ -179,7 +179,7 @@ class Game:
                         if len(self.players) == 4:
                             self.start()
                 else:
-                    if len(self.players) <= 4 and uid not in self.ids:
+                    if len(self.players) < 4 and uid not in self.ids:
                         self.players.append(Player(uid, name, username))
                         self.ids.update({uid : self.players[-1]})
                         self.say("{}加入了遊戲".format(name),"Markdown")
