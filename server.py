@@ -63,7 +63,11 @@ def handle(msg):
     if gid not in games:
         games[gid] = Game(gid)
     in_data = msg["text"].replace("@inforJourneyBot", "").split()
-    games[gid].on_msg(in_data[0][1:], in_data[1:], msg["from"]["id"], msg["from"]["first_name"])
+    if "username" in msg["from"]:
+        username = msg["from"]["username"]
+    else:
+        username = None
+    games[gid].on_msg(in_data[0][1:], in_data[1:], msg["from"]["id"], msg["from"]["first_name"], username)
 
 def handle_callback(msg):
     chat_id = msg['message']['chat']['id']
@@ -77,6 +81,11 @@ def handle_callback(msg):
     #bot.sendMessage(from_id, "已成功裝備" + query_data + "")
     bot.answerCallbackQuery(query_id)
 
+def tag_user(player):
+    if player.username:
+        return f"@{player.username}"
+    else:
+        return f"[{player.name}](tg://user?id={player.id})"
 
 class State(Enum):
     UNSTARTED = 0
@@ -113,7 +122,7 @@ class Game:
     def now_player(self):
         return self.players[self.now_player_no]
 
-    def on_msg(self, msg, args, uid, name):
+    def on_msg(self, msg, args, uid, name, username):
         print(args)
         try:
             {
@@ -164,7 +173,7 @@ class Game:
             if msg == "join":
                 if self.state == State.UNSTARTED:
                     if uid not in self.ids:
-                        self.players.append(Player(uid, name))
+                        self.players.append(Player(uid, name, username))
                         self.ids.update({uid : self.players[-1]})
                         self.say("{}加入了遊戲".format(name),"Markdown")
                         if len(self.players) == 4:
@@ -350,7 +359,7 @@ class Game:
     def next_player(self):
         self.now_player_no = (self.now_player_no + 1) % len(self.players)
         self.state = State.PENDING
-        self.say("換{}了唷\n你目前在第{}格".format(self.now_player().name, self.now_player().pos))
+        self.say("換{}了唷 {}\n你目前在第{}格".format(self.now_player().name, tag_user(self.now_player()), self.now_player().pos), "Markdown")
     
     def move(self, player, args):
         self.state = State.EVENT

@@ -29,8 +29,9 @@ def chinese(data):
     return count
 
 class Player(Entity):
-    def __init__(self, uid, name):
+    def __init__(self, uid, name, username):
         super(Player, self).__init__(name, 30, 10, 5) # hp, at, dfd
+        self.username = username
         self.id = uid
         self.exp = 0
         self.maxhp = 30
