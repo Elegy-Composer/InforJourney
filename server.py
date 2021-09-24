@@ -1,4 +1,5 @@
 # all mighty miohitokiri
+from Output import Output
 from urllib3.poolmanager import PoolKey
 from Events import EventCanEnd
 import telepot
@@ -61,7 +62,8 @@ def handle(msg):
         return
     gid = msg["chat"]["id"]
     if gid not in games:
-        games[gid] = Game(gid)
+        out = Output(bot, gid)
+        games[gid] = Game(gid, out)
     in_data = msg["text"].replace("@inforJourneyBot", "").split()
     if "username" in msg["from"]:
         username = msg["from"]["username"]
@@ -97,13 +99,14 @@ class State(Enum):
 
 
 class Game:
-    def __init__(self, groupid):
+    def __init__(self, groupid, out: Output):
         self.Map = GenMap()
         self.id = groupid
         self.ids = {}
         self.players = []
         self.state = State.UNSTARTED
         self.now_player_no = -1
+        self.out = out
 
     def say(self, msg, parse=None, edit=False, markup=None):
 
@@ -131,10 +134,12 @@ class Game:
                         ),
                 "map": (lambda x:
                     x or  # unless
-                        bot.sendPhoto(self.id,open("./Img/raw_map.jpg","rb"))
+                        # bot.sendPhoto(self.id,open("./Img/raw_map.jpg","rb"))
+                        self.out.send_map()
                       ),
                 "pos": (lambda x:
-                    x or self.say("{}目前在第{}格".format(self.ids[uid].name,self.ids[uid].pos))
+                    x or #self.say("{}目前在第{}格".format(self.ids[uid].name,self.ids[uid].pos))
+                        self.out.send_pos(self.ids[uid].name, self.ids[uid].pos)
                       ),
                 "jizz": (lambda x:
                     self.state != State.PENDING or self.now_player().id != uid or # unless
@@ -159,10 +164,12 @@ class Game:
                         self.end()
                        ),
                 "help": (lambda x:
-                    x or self.say(helpString)
+                    x or #self.say(helpString)
+                        self.out.send_help()
                       ),
                 "showpotion": (lambda x:
-                    x or self.say("{}的藥水們:\n{}".format(self.ids[uid].name, "無" if self.ids[uid].potions == [] else "\n".join([str(i)+". "+str(potion) for i, potion in enumerate(self.ids[uid].potions)])))
+                    x or #self.say("{}的藥水們:\n{}".format(self.ids[uid].name, "無" if self.ids[uid].potions == [] else "\n".join([str(i)+". "+str(potion) for i, potion in enumerate(self.ids[uid].potions)])))
+                        self.out.send_potion(self.ids[uid].name, self.ids[uid].potions)
                       ),
                 "drink": (lambda x:
                     self.state != State.PENDING or self.now_player().id != uid or # unless
@@ -175,34 +182,39 @@ class Game:
                     if uid not in self.ids:
                         self.players.append(Player(uid, name, username))
                         self.ids.update({uid : self.players[-1]})
-                        self.say("{}加入了遊戲".format(name),"Markdown")
+                        # self.say("{}加入了遊戲".format(name),"Markdown")
+                        self.out.send_welcome(name)
                         if len(self.players) == 4:
                             self.start()
                 else:
                     if len(self.players) <= 4 and uid not in self.ids:
                         self.players.append(Player(uid, name, username))
                         self.ids.update({uid : self.players[-1]})
-                        self.say("{}加入了遊戲".format(name),"Markdown")
+                        self.out.send_welcome(name)
+                        # self.say("{}加入了遊戲".format(name),"Markdown")
                 return
             if(self.state != State.UNSTARTED):
                 if msg == "change":
-                    kb_list = []
-                    for w in self.ids[uid].unused_weapons:
-                        kb_list.append([InlineKeyboardButton(text=w.name, callback_data="change "+str(uid)+" "+w.name)])
-                    for w in self.ids[uid].unused_armors:
-                        kb_list.append([InlineKeyboardButton(text=w.name, callback_data="change "+str(uid)+" "+w.name)])
+                    self.out.send_change(self.ids[uid].name, uid, self.ids[uid].unused_weapons + self.ids[uid].unused_armors)
+                    # kb_list = []
+                    # for w in self.ids[uid].unused_weapons:
+                    #     kb_list.append([InlineKeyboardButton(text=w.name, callback_data="change "+str(uid)+" "+w.name)])
+                    # for w in self.ids[uid].unused_armors:
+                    #     kb_list.append([InlineKeyboardButton(text=w.name, callback_data="change "+str(uid)+" "+w.name)])
                     #kb_list.append([InlineKeyboardButton(text="星爆氣流斬", callback_data="change 星爆氣流斬")])
-                    if kb_list:
-                        keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
-                        bot.sendMessage(self.id, "{}, 請選擇更換裝備".format(self.ids[uid].name), reply_markup=keyboard)
-                    else:
-                        bot.sendMessage(self.id, "{}沒有可更換的裝備".format(self.ids[uid].name))
+                    # if kb_list:
+                    #     keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
+                    #     bot.sendMessage(self.id, "{}, 請選擇更換裝備".format(self.ids[uid].name), reply_markup=keyboard)
+                    # else:
+                    #     bot.sendMessage(self.id, "{}沒有可更換的裝備".format(self.ids[uid].name))
                 elif msg == "retire":
                     if self.ids[uid].pending != Pending.RETIRE:
-                        self.say("{},你確定要退出遊戲嗎?\n確定退出請再次輸入 /retire".format(self.ids[uid].name))
+                        # self.say("{},你確定要退出遊戲嗎?\n確定退出請再次輸入 /retire".format(self.ids[uid].name))
+                        self.out.send_retire_confirm(self.ids[uid].name)
                         self.ids[uid].pending = Pending.RETIRE
                     else:
-                        self.say("{}離開了遊戲".format(self.ids[uid].name))
+                        # self.say("{}離開了遊戲".format(self.ids[uid].name))
+                        self.out.send_retire(self.ids[uid].name)
                         idx = self.players.index(self.ids[uid])
                         self.players.pop(idx)
                         del self.ids[uid]
@@ -214,24 +226,28 @@ class Game:
                         elif idx == self.now_player_no:
                             self.next_player()
                 elif msg == "showstat":
-                    kb_list = [
-                        [InlineKeyboardButton(text="小怪", callback_data="showstat monster")],
-                        [InlineKeyboardButton(text="首領", callback_data="showstat boss")],
-                        [InlineKeyboardButton(text="玩家", callback_data="showstat player")],
-                        [InlineKeyboardButton(text="武器", callback_data="showstat weapon 0")],
-                        [InlineKeyboardButton(text="防具", callback_data="showstat armor 0")],
-                        [InlineKeyboardButton(text="道具", callback_data="showstat item")]
-                    ]
-                    keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
-                    bot.sendMessage(self.id, "請選擇種類", reply_markup=keyboard)
+                    self.out.send_stat(uid)
+                    # kb_list = [
+                    #     [InlineKeyboardButton(text="小怪", callback_data="showstat monster")],
+                    #     [InlineKeyboardButton(text="首領", callback_data="showstat boss")],
+                    #     [InlineKeyboardButton(text="玩家", callback_data="showstat player")],
+                    #     [InlineKeyboardButton(text="武器", callback_data="showstat weapon 0")],
+                    #     [InlineKeyboardButton(text="防具", callback_data="showstat armor 0")],
+                    #     [InlineKeyboardButton(text="道具", callback_data="showstat item")]
+                    # ]
+                    # keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
+                    # bot.sendMessage(self.id, "請選擇種類", reply_markup=keyboard)
     def on_callback(self, query_data, uid, identifier):
+        print("on callback\nquery_data: {}\nuid: {}\nidentifier: {}\n".format(query_data, uid, identifier))
         query_data = query_data.split()
         try:
             if query_data[0] == "change" and len(query_data) > 2:
                 if uid == int(query_data[1]):
                     changed = self.ids[uid].change2(query_data[2])
                     if changed:
-                        bot.editMessageText(identifier, "{}已成功裝備{}".format(self.ids[uid].name, changed))
+                        # bot.editMessageText(identifier, "{}已成功裝備{}".format(self.ids[uid].name, changed))
+                        print("change called")
+                        self.out.change_succeed(self.ids[uid].name, changed)
                 else:
                     print(uid, query_data)
             elif query_data[0] == "end":
@@ -283,33 +299,38 @@ class Game:
                                 potion = Potions[query_data[2]]
                                 self.say("恢復"+"/".join(map(lambda x: str(x), potion))+"點生命")
                     elif len(query_data) > 1:
-                        kb_list = []
+                        # kb_list = []
                         if query_data[1] == "player":
-                            for player in self.players:
-                                kb_list.append([InlineKeyboardButton(text=player.name, callback_data="showplayer "+str(player.id))])
+                            # for player in self.players:
+                            #     kb_list.append([InlineKeyboardButton(text=player.name, callback_data="showplayer "+str(player.id))])
+                            self.out.stat_players(self.players)
                         elif query_data[1] == "boss":
-                            for i in range(4):
-                                kb_list.append([InlineKeyboardButton(text=Bosses[i][0], callback_data="showstat boss "+str(i))])
+                            # for i in range(4):
+                            #     kb_list.append([InlineKeyboardButton(text=Bosses[i][0], callback_data="showstat boss "+str(i))])
+                            self.out.stat_bosses()
                         elif query_data[1] == "item":
-                            for p in Potions:
-                                kb_list.append([InlineKeyboardButton(text=p, callback_data="showstat item "+p)])
+                            # for p in Potions:
+                            #     kb_list.append([InlineKeyboardButton(text=p, callback_data="showstat item "+p)])
+                            self.out.stat_items()
                         elif query_data[1] == "monster":
-                            for i in range(4):
-                                kb_list.append([InlineKeyboardButton(text="階段"+str(i+1), callback_data="showstat monster "+str(i))])
-                        kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
-                        keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
-                        bot.editMessageText(identifier, "請選擇", reply_markup=keyboard)
+                            # for i in range(4):
+                            #     kb_list.append([InlineKeyboardButton(text="階段"+str(i+1), callback_data="showstat monster "+str(i))])
+                            self.out.stat_monster_stage()
+                        # kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
+                        # keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
+                        # bot.editMessageText(identifier, "請選擇", reply_markup=keyboard)
                     else:
-                        kb_list = [
-                            [InlineKeyboardButton(text="小怪", callback_data="showstat monster")],
-                            [InlineKeyboardButton(text="首領", callback_data="showstat boss")],
-                            [InlineKeyboardButton(text="玩家", callback_data="showstat player")],
-                            [InlineKeyboardButton(text="武器", callback_data="showstat weapon 0")],
-                            [InlineKeyboardButton(text="防具", callback_data="showstat armor 0")],
-                            [InlineKeyboardButton(text="道具", callback_data="showstat item")]
-                        ]
-                        keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
-                        bot.editMessageText(identifier, "請選擇種類", reply_markup=keyboard)
+                        self.out.stat_category()
+                        # kb_list = [
+                        #     [InlineKeyboardButton(text="小怪", callback_data="showstat monster")],
+                        #     [InlineKeyboardButton(text="首領", callback_data="showstat boss")],
+                        #     [InlineKeyboardButton(text="玩家", callback_data="showstat player")],
+                        #     [InlineKeyboardButton(text="武器", callback_data="showstat weapon 0")],
+                        #     [InlineKeyboardButton(text="防具", callback_data="showstat armor 0")],
+                        #     [InlineKeyboardButton(text="道具", callback_data="showstat item")]
+                        # ]
+                        # keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
+                        # bot.editMessageText(identifier, "請選擇種類", reply_markup=keyboard)
                 except:
                     pass
             elif query_data[0] == "showplayer" and len(query_data)>1:
@@ -325,22 +346,26 @@ class Game:
         except:
             pass
     def show_player(self, entity):
-        player_str = "{name}: 等級:{}\n攻:{}, 防:{}, \nHP: {}, 最大HP: {}\n"
-        player_str += "武器:{}\n  攻+{} 防+{}\n防具:{}\n  攻+{} 防+{}\n"
-        player_str += "{name}目前經驗值:{}\n升級所需經驗值:{}\n"
-        player_str += "{name}現在有 {} 金幣"
-        self.say(player_str.format(
-            entity.lvl, entity.atk, entity.dfd, 
-            entity.hp, entity.maxhp, entity.weapon.name, 
-            entity.weapon.atk, entity.weapon.dfd, entity.armor.name, 
-            entity.armor.atk, entity.armor.dfd, 
-            entity.exp, Exps[entity.lvl] if entity.lvl < len(Exps) else "-",
-            entity.coin, name=entity.name))
+        print('showing')
+        print(entity)
+        self.out.stat_player(entity)
+        # player_str = "{name}: 等級:{}\n攻:{}, 防:{}, \nHP: {}, 最大HP: {}\n"
+        # player_str += "武器:{}\n  攻+{} 防+{}\n防具:{}\n  攻+{} 防+{}\n"
+        # player_str += "{name}目前經驗值:{}\n升級所需經驗值:{}\n"
+        # player_str += "{name}現在有 {} 金幣"
+        # self.say(player_str.format(
+        #     entity.lvl, entity.atk, entity.dfd, 
+        #     entity.hp, entity.maxhp, entity.weapon.name, 
+        #     entity.weapon.atk, entity.weapon.dfd, entity.armor.name, 
+        #     entity.armor.atk, entity.armor.dfd, 
+        #     entity.exp, Exps[entity.lvl] if entity.lvl < len(Exps) else "-",
+        #     entity.coin, name=entity.name))
     def show_monster(self, name, monster_data):
-        self.say("{}: 攻:{}, 防:{}, HP: {}\n經驗值: {}, 金幣: {}\n出現等級: {} ~ {}".format(
-            name, monster_data[0], 
-            monster_data[1], monster_data[2], monster_data[3], 
-            monster_data[4], monster_data[5], monster_data[6]))
+        self.out.stat_monster(name, monster_data)
+        # self.say("{}: 攻:{}, 防:{}, HP: {}\n經驗值: {}, 金幣: {}\n出現等級: {} ~ {}".format(
+        #     name, monster_data[0], 
+        #     monster_data[1], monster_data[2], monster_data[3], 
+        #     monster_data[4], monster_data[5], monster_data[6]))
     def mystat(self, entity):
         self.say("{}: 等級 {}\n攻:{}, 防:{}, \nHP: {}, 最大HP: {}\n 武器:{}\n攻+{} 防+{}\n 防具:{}\n攻+{} 防+{}".format(entity.name, entity.lvl, entity.atk, entity.dfd, entity.hp, entity.maxhp, entity.weapon.name, entity.weapon.atk, entity.weapon.dfd, entity.armor.name, entity.armor.atk, entity.armor.dfd))
     def start(self):
