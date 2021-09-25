@@ -415,7 +415,7 @@ class Game:
             self.say("參數錯誤")
     def endgame(self):
         self.say("遊戲已結束")
-        self.__init__(self.id)
+        self.__init__(self.id, self.out)
 
 
 MessageLoop(bot, {'chat': handle,
