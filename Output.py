@@ -54,7 +54,7 @@ class Output:
     def send_start_game(self):
         self.bot.sendMessage(self.id, "遊戲已開始")
 
-    def tag_user(player):
+    def tag_user(self, player):
         if player.username:
             return f"@{player.username}"
         else:
