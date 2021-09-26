@@ -1,5 +1,6 @@
 # all mighty miohitokiri
-from Output import Output
+import telegram
+from OutputMean import Output
 from urllib3.poolmanager import PoolKey
 from Events import EventCanEnd
 import telepot
@@ -64,7 +65,8 @@ def handle(msg):
         return
     gid = msg["chat"]["id"]
     if gid not in games:
-        out = Output(bot, gid)
+        bot_mean = telegram.Bot(TOKEN)
+        out = Output(bot_mean, gid)
         games[gid] = Game(gid, out)
     in_data = msg["text"].replace("@inforJourneyBot", "").split()
     if "username" in msg["from"]:
