@@ -298,7 +298,7 @@ class Output:
 
     @sending
     def send_fight_result(self, res, message = None):
-        return self._editable_send(f"{message['text']}\n{res}", message)
+        return self._editable_send(res, message)
 
     @sending
     def send_beat(self, winner, loser, coin = None, exp = None, message = None):
