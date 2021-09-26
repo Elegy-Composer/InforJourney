@@ -24,7 +24,7 @@ class Shop(EventCanEnd):
             if(item[1] == 3):
                 self.goods.append(Potion(item[0], Potions[item[0]]))
 
-    def buy(self, player, no, say):
+    def buy(self, player, no, out):
         if player.coin < self.price[no]:
             return False
         
@@ -32,7 +32,7 @@ class Shop(EventCanEnd):
         item = self.goods[no]
         del self.goods[no]
         del self.price[no]
-        say("購買成功")
+        out.send_buy_success()
         if isinstance(item, Weapon):
             #player.ask_change(item,say)
             player.unused_weapons.append(item)
