@@ -174,7 +174,7 @@ class Game:
                       ),
                 "showpotion": (lambda x:
                     x or #self.say("{}的藥水們:\n{}".format(self.ids[uid].name, "無" if self.ids[uid].potions == [] else "\n".join([str(i)+". "+str(potion) for i, potion in enumerate(self.ids[uid].potions)])))
-                        self.out.send_potion(self.ids[uid].name, self.ids[uid].potions)
+                        self.out.send_potion(uid, self.ids[uid].name, self.ids[uid].potions)
                       ),
                 "drink": (lambda x:
                     self.state != State.PENDING or self.now_player().id != uid or # unless
@@ -433,7 +433,10 @@ class Game:
     def endgame(self):
         # self.say("遊戲已結束")
         self.out.send_end_game()
-        self.__init__(self.id)
+        game_stat_ids = [k for k,v in stat_ids.items() if v == self]
+        for k in game_stat_ids:
+            del stat_ids[k]
+        self.__init__(self.id, self.out)
 
 
 stat_ids: Dict[int, Game] = dict()

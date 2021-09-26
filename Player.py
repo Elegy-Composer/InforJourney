@@ -73,6 +73,11 @@ class Player(Entity):
         if isinstance(event,Entity):
             # say("{}遇到了{} {}".format(self.name, Entity_type(event), event.name))
             said_msg = out.send_meet(self.name, Entity_type(event), event.name, said_msg)
+            print("after send_meet, said_msg:")
+            if said_msg:
+                print(said_msg)
+            else:
+                print("None")
             res = self.fight(event)
             # say(res)
             said_msg = out.send_fight_result(res, said_msg)
@@ -93,7 +98,7 @@ class Player(Entity):
                             self.unused_armors.append(drop_armor)
                             # say("{}獲得最後一擊獎勵: {}, {}".format(self.name, drop_weapon.name, drop_armor.name))
                             said_msg = out.send_last_strike(self.name, drop_weapon.name, drop_armor.name, said_msg)
-                    self.add_exp(event.exp, out, said_msg)
+                    said_msg = self.add_exp(event.exp, out, said_msg)
                     self.coin += event.coin
                 else:
                     # say("{}打倒了{}".format(self.name, event.name))
@@ -142,7 +147,7 @@ class Player(Entity):
                 said_msg = out.send_find_chest(self.name, event.coin, message=said_msg)
                 # say("{}在一個寶箱裡找到了 {} 金幣".format(self.name, event.coin))
             else:
-                said_msg = out.send_find_chest(self.name, event.cion, event.weapon.name, sai)
+                said_msg = out.send_find_chest(self.name, event.coin, event.weapon.name, said_msg)
                 # say("{}在一個寶箱裡找到了 {} 金幣和一個{}".format(self.name, event.coin, event.weapon.name))
                 #self.ask_change(event.weapon,say)
                 if isinstance(event.weapon, Weapon):
@@ -252,16 +257,18 @@ class Player(Entity):
         for i in self.on_hand:
             print("On hand event:", i)
         pass
-    def add_exp(self, exp, say):
+    def add_exp(self, exp, out, said_msg):
         self.exp += exp
         while self.lvl < len(Exps) and self.exp >= Exps[self.lvl]:
-            say("{}升到了{}級喔喔喔喔喔".format(self.name,self.lvl+1))
+            said_msg = out.send_level_up(self.name, self.lvl+1, said_msg)
+            # say("{}升到了{}級喔喔喔喔喔".format(self.name,self.lvl+1))
             self.exp -= Exps[self.lvl]
             self.atk += LevelUp[self.lvl][0]
             self.dfd += LevelUp[self.lvl][1]
             self.maxhp += LevelUp[self.lvl][2]
             self.lvl += 1
             self.hp = self.maxhp
+        return said_msg
     def level_to(self, level, out, said_msg):
         if self.lvl >= level:
             return

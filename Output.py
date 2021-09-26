@@ -28,10 +28,14 @@ help - Show game help"""
 def sending(func):
     def sending_wrapper(*args, **kwargs):
         try:
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
         except TooManyRequestsError:
             sleep(5)
-            func(*args, **kwargs)
+            return sending_wrapper(*args, **kwargs)
+        except (BotWasBlockedError, TelegramError):
+            #pm failed
+            #args[0] is self
+            args[0].bot.sendMessage(args[0].id, "Please add me! @inforJourneyBot")
     return sending_wrapper
 
 class Output:
@@ -80,14 +84,14 @@ class Output:
         self.bot.sendMessage(self.id, f"{name}目前在第{pos}格")
 
     @sending
-    def send_potion(self, name, potions):
+    def send_potion(self, uid, name, potions):
         potions_str = ""
         if not potions:
             potions_str = "無"
         else:
             potions_list = [f"{i}. {str(potion)}" for i, potion in enumerate(potions)]
             potions_str = "\n".join(potions_list)
-        self.bot.sendMessage(self.id, f"{name}的藥水們:\n{potions_str}")
+        self.bot.sendMessage(uid, f"{name}的藥水們:\n{potions_str}")
 
     @sending
     def send_heal_result(self, player: Player, potion, heal_point):
@@ -129,21 +133,16 @@ class Output:
     
     @sending
     def send_stat(self, uid):
-        try: 
-            kb_list = [
-                [InlineKeyboardButton(text="小怪", callback_data="showstat monster"),
-                InlineKeyboardButton(text="首領", callback_data="showstat boss")],
-                [InlineKeyboardButton(text="玩家", callback_data="showstat player"),
-                InlineKeyboardButton(text="武器", callback_data="showstat weapon 0")],
-                [InlineKeyboardButton(text="防具", callback_data="showstat armor 0"),
-                InlineKeyboardButton(text="道具", callback_data="showstat item")]
-            ]
-            keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
-            self.bot.sendMessage(uid, "請選擇種類", reply_markup=keyboard)
-        except (BotWasBlockedError, TelegramError) as e:
-            print("err")
-            print(e)
-            self.bot.sendMessage(self.id, "Please add me! @inforJourneyBot")
+        kb_list = [
+            [InlineKeyboardButton(text="小怪", callback_data="showstat monster"),
+            InlineKeyboardButton(text="首領", callback_data="showstat boss")],
+            [InlineKeyboardButton(text="玩家", callback_data="showstat player"),
+            InlineKeyboardButton(text="武器", callback_data="showstat weapon 0")],
+            [InlineKeyboardButton(text="防具", callback_data="showstat armor 0"),
+            InlineKeyboardButton(text="道具", callback_data="showstat item")]
+        ]
+        keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
+        self.bot.sendMessage(uid, "請選擇種類", reply_markup=keyboard)
 
     @sending
     def stat_category(self, identifier):
@@ -288,6 +287,8 @@ class Output:
         self.bot.sendMessage(self.id, f"升級{upgrade_times}次成功")
 
     def _editable_send(self, content, message):
+        if message == None:
+            print("message is None")
         if not message:
             return self.bot.sendMessage(self.id, content)
         return self.bot.editMessageText(message_identifier(message), f"{message['text']}\n{content}")
@@ -351,7 +352,7 @@ class Output:
 
     @sending
     def send_blacksmith_service(self, upgrade, weapon_cost, armor_cost, message = None):
-        content = ("\\n"
+        content = ("\n"
                f"武器升級 攻防+{upgrade} 價格:{weapon_cost}金幣\n\n"
                f"防具升級 攻防+{upgrade} 價格:{armor_cost}金幣\n"
         )
@@ -372,11 +373,11 @@ class Output:
 
     @sending
     def send_not_enough_coin(self):
-        self.bot.sendMessage("金幣不足 購買失敗")
+        self.bot.sendMessage(self.id, "金幣不足 購買失敗")
 
     @sending
     def send_buy_success(self):
-        self.bot.sendMessage("購買成功")
+        self.bot.sendMessage(self.id, "購買成功")
 
     @sending
     def send_end_game(self):
