@@ -57,21 +57,11 @@ class Player(Entity):
     
     def meet(self, event, out, first_time=False):
         print("meet")
-        # said = False
         said_msg = None
-        
-        # def say(*args, **kwargs):
-        #     nonlocal said_msg
-        #     print("X:", args)
-        #     if said:
-        #         said = orig_say(*args, **kwargs, edit=said)
-        #     else:
-        #         said = orig_say(*args, **kwargs)
         
         if isinstance(event, Gen):
             return self.meet(event.gen(self.lvl,self.phase()),out)
         if isinstance(event,Entity):
-            # say("{}遇到了{} {}".format(self.name, Entity_type(event), event.name))
             said_msg = out.send_meet(self.name, Entity_type(event), event.name, said_msg)
             print("after send_meet, said_msg:")
             if said_msg:
@@ -79,37 +69,30 @@ class Player(Entity):
             else:
                 print("None")
             res = self.fight(event)
-            # say(res)
             said_msg = out.send_fight_result(res, said_msg)
             print(self.hp, event.hp)
             if event.hp <= 0: # Win
                 if isinstance(event, Monster):
-                    # say("{}打倒了{} ，獲得了{}金幣和{}經驗值".format(self.name, event.name, event.coin, event.exp))
                     said_msg = out.send_beat(self.name, event.name, event.coin, event.exp, said_msg)
                     if(isinstance(event, Boss)):
                         said_msg = self.level_to(min(10*(self.phase()+1) + 1, 40), out, said_msg)
                         if(self.phase() == 3):
-                            # say("恭喜{}通關遊戲".format(self.name))
                             said_msg = out.send_congrats_clear(self.name, said_msg)
                             return "Starburst"
                         drop_weapon, drop_armor = event.drop()
                         if drop_weapon:
                             self.unused_weapons.append(drop_weapon)
                             self.unused_armors.append(drop_armor)
-                            # say("{}獲得最後一擊獎勵: {}, {}".format(self.name, drop_weapon.name, drop_armor.name))
                             said_msg = out.send_last_strike(self.name, drop_weapon.name, drop_armor.name, said_msg)
                     said_msg = self.add_exp(event.exp, out, said_msg)
                     self.coin += event.coin
                 else:
-                    # say("{}打倒了{}".format(self.name, event.name))
                     said_msg = out.send_beat(self.name, event.name, said_msg)
                     event.restart()
             elif self.hp <= 0:
-                # say("{}被{}打倒了 SAD".format(self.name, event.name))
                 said_msg = out.send_beaten(self.name, event.name, said_msg)
                 self.restart() 
             else :
-                # say("竟然是百年難得一見的平手")
                 said_msg = out.send_tie(said_msg)
                 if isinstance(event, Boss):
                     self.restart()
@@ -117,13 +100,6 @@ class Player(Entity):
         if isinstance(event, Shop):
             if first_time:
                 said_msg = out.send_reach_shop(self.name, said_msg)
-                # say("{}抵達一間商店".format(self.name))
-            # msg = "```\n======歡迎來到商店======\n"
-            # for i, (item, price) in enumerate(zip(event.goods,event.price)):
-            #     msgstr = '{0:{wd}}'.format(item.name,wd=15-chinese(item.name))
-            #     msg+= "{}. {}{:>5}\n".format(i,msgstr,price)
-            # msg+="```"
-            # say(msg, "Markdown", markup=EndMarkup)
             said_msg = out.send_shop_items(event.goods, event.price, said_msg)
             self.pending = Pending.SHOP
             self.on_hand.append(event)
@@ -131,11 +107,6 @@ class Player(Entity):
         if isinstance(event, Blacksmith):
             if first_time:
                 said_msg = out.send_reach_blacksmith(self.name, said_msg)
-                # say("{}抵達一間鐵匠鋪".format(self.name))
-            # say("\\n"
-            #    +"武器升級 攻防+{} 價格:{}金幣\n\n".format(event.upgrade, event.get_cost(self.weapon))
-            #    +"防具升級 攻防+{} 價格:{}金幣\n".format(event.upgrade, event.get_cost(self.armor)), 
-            #    markup=EndMarkup)
             said_msg = out.send_blacksmith_service(event.upgrade, event.get_cost(self.weapon), event.get_cost(self.armor), said_msg)
             self.pending = Pending.BLACKSMITH
             self.on_hand.append(event)
@@ -145,10 +116,8 @@ class Player(Entity):
             print("fok yu")
             if event.weapon is None :
                 said_msg = out.send_find_chest(self.name, event.coin, message=said_msg)
-                # say("{}在一個寶箱裡找到了 {} 金幣".format(self.name, event.coin))
             else:
                 said_msg = out.send_find_chest(self.name, event.coin, event.weapon.name, said_msg)
-                # say("{}在一個寶箱裡找到了 {} 金幣和一個{}".format(self.name, event.coin, event.weapon.name))
                 #self.ask_change(event.weapon,say)
                 if isinstance(event.weapon, Weapon):
                     self.unused_weapons.append(event.weapon)
@@ -218,12 +187,10 @@ class Player(Entity):
         while updrade_times < times:
             if not blacksmith.upgrades(item, self):
                 out.send_upgrade_limited(updrade_times)
-                # say("金幣不足 共升級{}次".format(updrade_times))
                 break
             updrade_times += 1
         else:
             out.send_upgrade_full(updrade_times)
-            # say("升級{}次成功".format(updrade_times))
         self.on_hand.append(blacksmith)
 
         if self.pending == Pending.NONE:
@@ -235,13 +202,11 @@ class Player(Entity):
         shop = self.on_hand.popleft()
         self.pending = Pending.NONE
         if shop.buy(self,itemno, out):
-            # say("購買成功") written in shop.buy
             self.on_hand.append(shop)
             pprint(self.on_hand)
             print("end of purchase")
         else:
             out.send_not_enough_coin()
-            # say("金幣不足 購買失敗")
         if self.pending == Pending.NONE:
             self.meet(self.on_hand[0], out)
         
@@ -261,7 +226,6 @@ class Player(Entity):
         self.exp += exp
         while self.lvl < len(Exps) and self.exp >= Exps[self.lvl]:
             said_msg = out.send_level_up(self.name, self.lvl+1, said_msg)
-            # say("{}升到了{}級喔喔喔喔喔".format(self.name,self.lvl+1))
             self.exp -= Exps[self.lvl]
             self.atk += LevelUp[self.lvl][0]
             self.dfd += LevelUp[self.lvl][1]
@@ -280,4 +244,3 @@ class Player(Entity):
         self.hp = self.maxhp
         self.exp = 0
         return out.send_level_up(self.name, self.lvl, said_msg)
-        # say("{}升到了{}級喔喔喔喔喔".format(self.name,self.lvl))

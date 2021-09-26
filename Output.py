@@ -115,13 +115,8 @@ class Output:
 
     @sending 
     def change_succeed(self, name, item, identifier):
-        if self.change_msg:
-            self.bot.editMessageText(identifier, f"{name}已成功裝備{item}")
-            self.change_msg = None
-        else:
-            print("self.change_msg is None, should not happen")
-            print(f"name: {name}\nitem: {item}")
-            raise ValueError("chanege_msg is None.\nBe sure to call send_change first.")
+        self.bot.editMessageText(identifier, f"{name}已成功裝備{item}")
+       
 
     @sending
     def send_retire_confirm(self, name):
