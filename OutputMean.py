@@ -152,7 +152,7 @@ class Output:
     def stat_monster_stage(self, identifier):
         kb_list = []
         for i in range(4):
-            kb_list.append([InlineKeyboardButton(text="階段"+str(i+1), callback_data="showstat monster "+str(i))])
+            kb_list.append([InlineKeyboardButton(text=f"階段{i+1}", callback_data=f"showstat monster {i}")])
         kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
         self.bot.editMessageText("請選擇", chat_id=identifier[0], message_id=identifier[1], reply_markup=keyboard)
@@ -161,7 +161,7 @@ class Output:
     def stat_monsters(self, identifier, stage):
         kb_list = []
         for name in Monsters[stage]:
-            kb_list.append([InlineKeyboardButton(text=name, callback_data="showstat monster "+stage+" "+name)])
+            kb_list.append([InlineKeyboardButton(text=name, callback_data=f"showstat monster {stage} {name}")])
         kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat monster")])
         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
         self.bot.editMessageText("請選擇", chat_id=identifier[0], message_id=identifier[1], reply_markup=keyboard)
@@ -170,7 +170,7 @@ class Output:
     def stat_bosses(self, identifier):
         kb_list = []
         for i in range(4):
-            kb_list.append([InlineKeyboardButton(text=Bosses[i][0], callback_data="showstat boss "+str(i))])
+            kb_list.append([InlineKeyboardButton(text=Bosses[i][0], callback_data=f"showstat boss {i}")])
         kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
         self.bot.editMessageText("請選擇", chat_id=identifier[0], message_id=identifier[1], reply_markup=keyboard)
@@ -179,7 +179,7 @@ class Output:
     def stat_players(self, players, identifier):
         kb_list = []
         for player in players:
-            kb_list.append([InlineKeyboardButton(text=player.name, callback_data="showplayer "+str(player.id))])
+            kb_list.append([InlineKeyboardButton(text=player.name, callback_data=f"showplayer {player.id}")])
         kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
         self.bot.editMessageText("請選擇", chat_id=identifier[0], message_id=identifier[1], reply_markup=keyboard)
@@ -188,7 +188,7 @@ class Output:
     def stat_items(self, identifier):
         kb_list = []
         for p in Potions:
-            kb_list.append([InlineKeyboardButton(text=p, callback_data="showstat item "+p)])
+            kb_list.append([InlineKeyboardButton(text=p, callback_data=f"showstat item {p}")])
         kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
         self.bot.editMessageText("請選擇", chat_id=identifier[0], message_id=identifier[1], reply_markup=keyboard)
@@ -198,12 +198,12 @@ class Output:
         kb_list = []
         weapon_list = list(Weapons.items())
         if page:
-            kb_list.append([InlineKeyboardButton(text="<<", callback_data="showstat weapon "+str(page-1))])
+            kb_list.append([InlineKeyboardButton(text="<<", callback_data=f"showstat weapon {page-1}")])
         for i in range(page*6, min(page*6+6, len(weapon_list))):
             name, param = weapon_list[i]
             kb_list.append([InlineKeyboardButton(text=name, callback_data="showweapon "+name)])
         if page*6 + 6 < len(weapon_list):
-            kb_list.append([InlineKeyboardButton(text=">>", callback_data="showstat weapon "+str(page+1))])
+            kb_list.append([InlineKeyboardButton(text=">>", callback_data=f"showstat weapon {page+1}")])
         kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
         self.bot.editMessageText("請選擇", chat_id=identifier[0], message_id=identifier[1], reply_markup=keyboard)
@@ -213,12 +213,12 @@ class Output:
         kb_list = []
         armor_list = list(Armors.items())
         if page:
-            kb_list.append([InlineKeyboardButton(text="<<", callback_data="showstat armor "+str(page-1))])
+            kb_list.append([InlineKeyboardButton(text="<<", callback_data=f"showstat armor {page-1}")])
         for i in range(page*6, min(page*6+6, len(armor_list))):
             name, param = armor_list[i]
             kb_list.append([InlineKeyboardButton(text=name, callback_data="showarmor "+name)])
         if page*6 + 6 < len(armor_list):
-            kb_list.append([InlineKeyboardButton(text=">>", callback_data="showstat armor "+str(page+1))])
+            kb_list.append([InlineKeyboardButton(text=">>", callback_data=f"showstat armor {page+1}")])
         kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
         self.bot.editMessageText("請選擇", chat_id=identifier[0], message_id=identifier[1], reply_markup=keyboard)
