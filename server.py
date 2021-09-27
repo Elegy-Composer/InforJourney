@@ -108,21 +108,22 @@ class Not:
     def __init__(self, state: State):
         self.state = state
 
-def require_game_state(func, *states):
-    def state_check(*args, **kwargs):
-        for state in states:
-            if isinstance(state, State):
-                if args[0].state != state:
-                    return
-            elif isinstance(state, Not):
-                if args[0].state == state.state:
-                    return
-            else:
-                raise ValueError("require_game_state only accept argument of type State or Not")
-
-        return func(*args, **kwargs)
-
-    return state_check
+def require_game_state(*states):
+    def decorator(func):
+        def state_check(*args, **kwargs):
+            for state in states:
+                if isinstance(state, State):
+                    if args[0].state != state:
+                        return
+                elif isinstance(state, Not):
+                    if args[0].state == state.state:
+                        return
+                else:
+                    raise ValueError("require_game_state only accept argument of type State or Not")
+            return func(*args, **kwargs)
+        return state_check
+    
+    return decorator
 
 class Game:
     def __init__(self, groupid, out: Output):
