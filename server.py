@@ -461,7 +461,7 @@ class Game:
     
     def move(self, player, moved):
         self.state = State.EVENT
-        if not moved:
+        if not isinstance(moved, int):
             moved = randint(1, 4)
         # try:
         #     moved = int(args[0])
