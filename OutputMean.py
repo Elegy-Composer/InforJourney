@@ -1,5 +1,5 @@
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.error import RetryAfter, TimedOut, Unauthorized
+from telegram.error import BadRequest, RetryAfter, TimedOut, Unauthorized
 from time import sleep
 from Player import Player
 from Data import *
@@ -26,8 +26,14 @@ def sending(func):
     def sending_wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except (RetryAfter, TimedOut):
+        except RetryAfter as e:
+            print(f"retry after {e.retry_after} seconds")
             sleep(5)
+            return sending_wrapper(*args, **kwargs)
+        except TimedOut:
+            sleep(5)
+            print("time out, sleep 5 seconds")
+            # print("try do nothing at time out")
             return sending_wrapper(*args, **kwargs)
         except (Unauthorized):
             #pm failed
@@ -296,11 +302,15 @@ class Output:
         self.bot.sendMessage(self.id, f"升級{upgrade_times}次成功")
 
     def _editable_send(self, content, message):
-        if message == None:
-            print("message is None")
-        if not message:
-            return self.bot.sendMessage(self.id, content)
-        return message.edit_text(f"{message.text}\n{content}")
+        try:
+            if message == None:
+                print("message is None")
+            if not message:
+                return self.bot.sendMessage(self.id, content)
+            return message.edit_text(f"{message.text}\n{content}", timeout=15)
+        except BadRequest:
+            print("Bad request error")
+            return message
 
     @sending
     def send_meet(self, name, enemy, event_name, message = None):
