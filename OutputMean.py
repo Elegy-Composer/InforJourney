@@ -38,7 +38,7 @@ def sending(func):
         except (Unauthorized):
             #pm failed
             #args[0] is self
-            args[0].bot.sendMessage(args[0].id, "Please add me! @inforJourneyBot")
+            args[0]._send_message(args[0].id, "Please add me! @inforJourneyBot")
     return sending_wrapper
 
 class Output:
@@ -49,17 +49,29 @@ class Output:
             [InlineKeyboardButton(text='Leave', callback_data='end')],
         ])
     
+    def _send_message(self, *args, **kwargs):
+        return self.bot.send_message(*args, **kwargs, timeout=15)
+
+    def _edit_message_text(self, *args, message=None, identifier=None, **kwargs):
+        if message:
+            return message.edit_text(*args, **kwargs, timeout=15)
+        elif identifier:
+            return self.bot.edit_message_text(*args, **kwargs, 
+                chat_id=identifier[0], message_id=identifier[1], timeout=15)
+        else:
+            raise ValueError("message or identifier should be given")
+
     @sending
     def send_help(self):
-        self.bot.sendMessage(self.id, helpString)
+        self._send_message(self.id, helpString)
 
     @sending
     def send_welcome(self, name):
-        self.bot.sendMessage(self.id, f"{name}加入了遊戲", parse_mode="Markdown")
+        self._send_message(self.id, f"{name}加入了遊戲", parse_mode="Markdown")
 
     @sending
     def send_start_game(self):
-        self.bot.sendMessage(self.id, "遊戲已開始")
+        self._send_message(self.id, "遊戲已開始")
 
     def tag_user(self, player):
         if player.username:
@@ -69,14 +81,14 @@ class Output:
 
     @sending
     def send_player_turn_start(self, player: Player):
-        self.bot.sendMessage(self.id, 
+        self._send_message(self.id, 
             f"換{player.name}了唷 {self.tag_user(player)}\n你目前在第{player.pos}格", 
             parse_mode="Markdown"
         )
     
     @sending
     def send_jizz_result(self, player_name, jizz):
-        self.bot.sendMessage(self.id, f"{player_name}骰出了{jizz}.")
+        self._send_message(self.id, f"{player_name}骰出了{jizz}.")
     
     @sending
     def send_map(self):
@@ -84,7 +96,7 @@ class Output:
     
     @sending
     def send_pos(self, name, pos):
-        self.bot.sendMessage(self.id, f"{name}目前在第{pos}格")
+        self._send_message(self.id, f"{name}目前在第{pos}格")
 
     @sending
     def send_potion(self, uid, name, potions):
@@ -94,15 +106,15 @@ class Output:
         else:
             potions_list = [f"{i}. {str(potion)}" for i, potion in enumerate(potions)]
             potions_str = "\n".join(potions_list)
-        self.bot.sendMessage(uid, f"{name}的藥水們:\n{potions_str}")
+        self._send_message(uid, f"{name}的藥水們:\n{potions_str}")
 
     @sending
     def send_heal_result(self, player: Player, potion, heal_point):
-        self.bot.sendMessage(self.id, f"{player.name}飲用了{potion}\n回復{heal_point}點生命\n{player.name}現在有{player.hp}點生命")
+        self._send_message(self.id, f"{player.name}飲用了{potion}\n回復{heal_point}點生命\n{player.name}現在有{player.hp}點生命")
 
     @sending 
     def send_wrong_argument(self):
-        self.bot.sendMessage(self.id, "參數錯誤")
+        self._send_message(self.id, "參數錯誤")
 
     @sending
     def send_change(self, name, uid, avaliable_items):
@@ -112,21 +124,21 @@ class Output:
 
         if kb_list:
             keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
-            self.bot.sendMessage(self.id, f"{name}, 請選擇更換裝備", reply_markup=keyboard)
+            self._send_message(self.id, f"{name}, 請選擇更換裝備", reply_markup=keyboard)
         else:
-            self.bot.sendMessage(self.id, f"{name}沒有可更換的裝備")
+            self._send_message(self.id, f"{name}沒有可更換的裝備")
 
     @sending 
     def change_succeed(self, name, item, identifier):
-        self.bot.editMessageText(f"{name}已成功裝備{item}", chat_id=identifier[0], message_id=identifier[1])
+        self._edit_message_text(f"{name}已成功裝備{item}", identifier=identifier)
 
     @sending
     def send_retire_confirm(self, name):
-        self.bot.sendMessage(self.id, f"{name},你確定要退出遊戲嗎?\n確定退出請再次輸入 /retire")
+        self._send_message(self.id, f"{name},你確定要退出遊戲嗎?\n確定退出請再次輸入 /retire")
 
     @sending
     def send_retire(self, name):
-        self.bot.sendMessage(self.id, f"{name}離開了遊戲")
+        self._send_message(self.id, f"{name}離開了遊戲")
     
     @sending
     def send_stat(self, uid):
@@ -139,7 +151,7 @@ class Output:
             InlineKeyboardButton(text="道具", callback_data="showstat item")]
         ]
         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
-        self.bot.sendMessage(uid, "請選擇種類", reply_markup=keyboard)
+        self._send_message(uid, "請選擇種類", reply_markup=keyboard)
 
     @sending
     def stat_category(self, identifier):
@@ -152,7 +164,7 @@ class Output:
             InlineKeyboardButton(text="道具", callback_data="showstat item")]
         ]
         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
-        self.bot.editMessageText("請選擇種類", chat_id=identifier[0], message_id=identifier[1], reply_markup=keyboard)
+        self._edit_message_text("請選擇種類", identifier=identifier, reply_markup=keyboard)
 
     @sending
     def stat_monster_stage(self, identifier):
@@ -161,7 +173,7 @@ class Output:
             kb_list.append([InlineKeyboardButton(text=f"階段{i+1}", callback_data=f"showstat monster {i}")])
         kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
-        self.bot.editMessageText("請選擇", chat_id=identifier[0], message_id=identifier[1], reply_markup=keyboard)
+        self._edit_message_text("請選擇", identifier=identifier, reply_markup=keyboard)
 
     @sending
     def stat_monsters(self, identifier, stage):
@@ -176,7 +188,7 @@ class Output:
             kb_list.append([InlineKeyboardButton(text=display[-1], callback_data=f"showstat monster {stage} {display[-1]}")])
         kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat monster")])
         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
-        self.bot.editMessageText("請選擇", chat_id=identifier[0], message_id=identifier[1], reply_markup=keyboard)
+        self._edit_message_text("請選擇", identifier=identifier, reply_markup=keyboard)
 
     @sending
     def stat_bosses(self, identifier):
@@ -185,7 +197,7 @@ class Output:
             kb_list.append([InlineKeyboardButton(text=Bosses[i][0], callback_data=f"showstat boss {i}")])
         kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
-        self.bot.editMessageText("請選擇", chat_id=identifier[0], message_id=identifier[1], reply_markup=keyboard)
+        self._edit_message_text("請選擇", identifier=identifier, reply_markup=keyboard)
 
     @sending
     def stat_players(self, players, identifier):
@@ -194,7 +206,7 @@ class Output:
             kb_list.append([InlineKeyboardButton(text=player.name, callback_data=f"showplayer {player.id}")])
         kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
-        self.bot.editMessageText("請選擇", chat_id=identifier[0], message_id=identifier[1], reply_markup=keyboard)
+        self._edit_message_text("請選擇", identifier=identifier, reply_markup=keyboard)
 
     @sending
     def stat_items(self, identifier):
@@ -203,7 +215,7 @@ class Output:
             kb_list.append([InlineKeyboardButton(text=p, callback_data=f"showstat item {p}")])
         kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
-        self.bot.editMessageText("請選擇", chat_id=identifier[0], message_id=identifier[1], reply_markup=keyboard)
+        self._edit_message_text("請選擇", identifier=identifier, reply_markup=keyboard)
 
     @sending
     def stat_weapons(self, identifier, page):
@@ -224,7 +236,7 @@ class Output:
             kb_list.append([InlineKeyboardButton(text=">>", callback_data=f"showstat weapon {page+1}")])
         kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
-        self.bot.editMessageText("請選擇", chat_id=identifier[0], message_id=identifier[1], reply_markup=keyboard)
+        self._edit_message_text("請選擇", identifier=identifier, reply_markup=keyboard)
 
     @sending
     def stat_armors(self, identifier, page):
@@ -245,7 +257,7 @@ class Output:
             kb_list.append([InlineKeyboardButton(text=">>", callback_data=f"showstat armor {page+1}")])
         kb_list.append([InlineKeyboardButton(text="上一層", callback_data="showstat")])
         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
-        self.bot.editMessageText("請選擇", chat_id=identifier[0], message_id=identifier[1], reply_markup=keyboard)
+        self._edit_message_text("請選擇", identifier=identifier, reply_markup=keyboard)
 
     @sending
     def stat_player(self, uid, player: Player):
@@ -269,11 +281,11 @@ class Output:
             f'{player.name}現在有 {player.coin} 金幣'
         )
 
-        self.bot.sendMessage(uid, player_str)
+        self._send_message(uid, player_str)
     
     @sending
     def stat_monster(self, uid, monster_name, monster_data):
-        self.bot.sendMessage(uid, (
+        self._send_message(uid, (
             f'{monster_name}: 攻:{monster_data[0]}, 防:{monster_data[1]}, HP: {monster_data[2]}\n'
             f'經驗值: {monster_data[3]}, 金幣: {monster_data[4]}\n'
             f'出現等級: {monster_data[5]} ~ {monster_data[6]}'
@@ -281,33 +293,33 @@ class Output:
 
     @sending
     def stat_item(self, uid, potion):
-        self.bot.sendMessage(uid, f'恢復{"/".join(map(lambda x: str(x), potion))}點生命')
+        self._send_message(uid, f'恢復{"/".join(map(lambda x: str(x), potion))}點生命')
 
     @sending
     def stat_weapon(self, uid, weapon):
         (atk, dfd) = Weapons[weapon]
-        self.bot.sendMessage(uid, f"{weapon}:\n攻:{atk} 防:{dfd}")
+        self._send_message(uid, f"{weapon}:\n攻:{atk} 防:{dfd}")
 
     @sending
     def stat_armor(self, uid, armor):
         (atk, dfd) = Armors[armor]
-        self.bot.sendMessage(uid, f"{armor}:\n攻:{atk} 防:{dfd}")
+        self._send_message(uid, f"{armor}:\n攻:{atk} 防:{dfd}")
 
     @sending
     def send_upgrade_limited(self, upgrade_times):
-        self.bot.sendMessage(self.id, f"金幣不足 共升級{upgrade_times}次")
+        self._send_message(self.id, f"金幣不足 共升級{upgrade_times}次")
 
     @sending
     def send_upgrade_full(self, upgrade_times):
-        self.bot.sendMessage(self.id, f"升級{upgrade_times}次成功")
+        self._send_message(self.id, f"升級{upgrade_times}次成功")
 
     def _editable_send(self, content, message):
         try:
             if message == None:
                 print("message is None")
             if not message:
-                return self.bot.sendMessage(self.id, content)
-            return message.edit_text(f"{message.text}\n{content}", timeout=15)
+                return self._send_message(self.id, content)
+            return self._edit_message_text(f"{message.text}\n{content}", message=message)
         except BadRequest:
             print("Bad request error")
             return message
@@ -362,8 +374,8 @@ class Output:
             msg+= "{}. {}{:>5}\n".format(i,msgstr,price)
         msg+="```"
         if not message:
-            return self.bot.sendMessage(self.id, msg, parse_mode="Markdown", reply_markup=self.end_markup)
-        return message.edit_text(f"{message.text}\n{msg}", parse_mode="Markdown", reply_markup=self.end_markup)
+            return self._send_message(self.id, msg, parse_mode="Markdown", reply_markup=self.end_markup)
+        return self._edit_message_text(f"{message.text}\n{msg}", message=message, parse_mode="Markdown", reply_markup=self.end_markup)
 
     @sending
     def send_reach_blacksmith(self, name, message = None):
@@ -376,8 +388,8 @@ class Output:
                f"防具升級 攻防+{upgrade} 價格:{armor_cost}金幣\n"
         )
         if not message:
-            return self.bot.sendMessage(self.id, content, reply_markup=self.end_markup)
-        return message.edit_text(f"{message.text}\n{content}", parse_mode="Markdown", reply_markup=self.end_markup)
+            return self._send_message(self.id, content, reply_markup=self.end_markup)
+        return self._edit_message_text(f"{message.text}\n{content}", message=message, parse_mode="Markdown", reply_markup=self.end_markup)
 
     @sending
     def send_find_chest(self, name, coin, weapon_name = None, message = None):
@@ -392,12 +404,12 @@ class Output:
 
     @sending
     def send_not_enough_coin(self):
-        self.bot.sendMessage(self.id, "金幣不足 購買失敗")
+        self._send_message(self.id, "金幣不足 購買失敗")
 
     @sending
     def send_buy_success(self):
-        self.bot.sendMessage(self.id, "購買成功")
+        self._send_message(self.id, "購買成功")
 
     @sending
     def send_end_game(self):
-        self.bot.sendMessage(self.id, "遊戲已結束")
+        self._send_message(self.id, "遊戲已結束")
