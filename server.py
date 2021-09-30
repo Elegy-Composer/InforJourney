@@ -32,23 +32,23 @@ bot = telepot.Bot(TOKEN)
 games = {}
 weapon_list = list(Weapons.items())
 armor_list = list(Armors.items())
-helpString = """join - Join a game
-start - Start a game
-jizz - Throw a die to move
-map - Show the game map
-pos - Show Your positon
-buy - [no] Buy an item in shop
-upgrade - [weapon/armor] Upgrade weapon or armor in blacksmith shop
-change - Change weapon or armor
-end - Leave shop or blacksmith shop
-drink - [no] Drink a potion
-mystat - Show your status
-showpotion - Show all your potions
-showstat - Show status of chosen entity
-retire - retire from game
-exp - Show your exp
-coin - Show your coins
-help - Show game help"""
+# helpString = """join - Join a game
+# start - Start a game
+# jizz - Throw a die to move
+# map - Show the game map
+# pos - Show Your positon
+# buy - [no] Buy an item in shop
+# upgrade - [weapon/armor] Upgrade weapon or armor in blacksmith shop
+# change - Change weapon or armor
+# end - Leave shop or blacksmith shop
+# drink - [no] Drink a potion
+# mystat - Show your status
+# showpotion - Show all your potions
+# showstat - Show status of chosen entity
+# retire - retire from game
+# exp - Show your exp
+# coin - Show your coins
+# help - Show game help"""
 
 def isTrue(str, none = False):
     if str is None:
@@ -75,7 +75,50 @@ def handle(msg):
         username = msg["from"]["username"]
     else:
         username = None
-    games[gid].on_msg(in_data[0][1:], in_data[1:], msg["from"]["id"], msg["from"]["first_name"], username)
+    # games[gid].on_msg(in_data[0][1:], in_data[1:], msg["from"]["id"], msg["from"]["first_name"], username)
+    dispatch(gid, in_data[0][1:], in_data[1:], msg["from"]["id"], msg["from"]["first_name"], username)
+
+def dispatch(gid, msg, args, uid, name, username):
+    game = games[gid]
+    if msg == "start":
+        game.on_start()
+    elif msg == "map":
+        game.on_map()
+    elif msg == "pos":
+        game.on_pos(uid)
+    elif msg == "jizz":
+        try:
+            game.on_jizz(uid, int(args[0]))
+        except:
+            game.on_jizz(uid)
+    elif msg == "upgrade":
+        game.on_upgrade(uid, args[0], 1 if len(args) < 2 else args[1])
+    elif msg == "buy":
+        try:
+            game.on_buy(uid, int(args[0]))
+        except:
+            game.out.send_wrong_argument()
+    elif msg == "mystat":
+        game.on_mystat(uid)
+    elif msg == "end":
+        game.on_end(uid)
+    elif msg == "help":
+        game.on_help()
+    elif msg == "showpotion":
+        game.on_show_potion(uid)
+    elif msg == "drink":
+        try:
+            game.on_drink(uid, int(args[0]))
+        except:
+            game.out.send_wrong_argument()
+    elif msg == "join":
+        game.on_join(uid, name, username)
+    elif msg == "change":
+        game.on_change(uid)
+    elif msg == "retire":
+        game.on_retire(uid)
+    elif msg == "showstat":
+        game.on_show_stat(uid)
 
 def handle_callback(msg):
     chat_id = msg['message']['chat']['id']
@@ -232,153 +275,14 @@ class Game:
     def on_show_stat(self, uid):
         self.out.send_stat(uid)
         stat_ids[uid] = self
-    
-    def on_msg(self, msg, args, uid, name, username):
-        print(args)
-        if msg == "start":
-            self.on_start()
-        elif msg == "map":
-            self.on_map()
-        elif msg == "pos":
-            self.on_pos(uid)
-        elif msg == "jizz":
-            try:
-                self.on_jizz(uid, int(args[0]))
-            except:
-                self.on_jizz(uid)
-        elif msg == "upgrade":
-            self.on_upgrade(uid, args[0], 1 if len(args) < 2 else args[1])
-        elif msg == "buy":
-            try:
-                self.on_buy(uid, int(args[0]))
-            except:
-                self.out.send_wrong_argument()
-        elif msg == "mystat":
-            self.on_mystat(uid)
-        elif msg == "end":
-            self.on_end(uid)
-        elif msg == "help":
-            self.on_help()
-        elif msg == "showpotion":
-            self.on_show_potion(uid)
-        elif msg == "drink":
-            try:
-                self.on_drink(uid, int(args[0]))
-            except:
-                self.out.send_wrong_argument()
-        elif msg == "join":
-            self.on_join(uid, name, username)
-        elif msg == "change":
-            self.on_change(uid)
-        elif msg == "retire":
-            self.on_retire(uid)
-        elif msg == "showstat":
-            self.on_show_stat(uid)
-        # try:
-        #     {
-        #         "start": (lambda x:
-        #             # self.start()
-        #             self.on_start()
-        #                 ),
-        #         "map": (lambda x:
-        #             # x or  # unless
-        #                 # self.out.send_map()
-        #                 self.on_map()
-        #               ),
-        #         "pos": (lambda x:
-        #             # x or 
-        #                 # self.out.send_pos(self.ids[uid].name, self.ids[uid].pos)
-        #                 self.on_pos(uid)
-        #               ),
-        #         "jizz": (lambda x:
-        #             # self.state != State.PENDING or self.now_player().id != uid or # unless
-        #                 # self.move(self.now_player(), args)
-        #                 try:
-        #                     self.on_jizz(uid, int(args[0]))
-        #                 except:
-        #                     self
-        #                ),
-        #         "upgrade": (lambda x:
-        #             # self.state != State.EVENT or self.now_player().id != uid or # unless
-        #                 # self.now_player().pending != Pending.BLACKSMITH or
-        #                     # self.now_player().upgrade(args[0], self.out, 1 if len(args) < 2 else args[1])
-        #                     self.on_upgrade(uid, args[0], 1 if len(args) < 2 else args[1])
-        #                    ),
-        #         "buy": (lambda x:
-        #             # self.state != State.EVENT or self.now_player().id != uid or # unless
-        #                 # self.now_player().pending != Pending.SHOP or
-        #                     # self.now_player().purchase(int(args[0]),self.out)
-        #                     self.on_buy(uid, int(args[0]))
-        #                    ),
-        #         "mystat": (lambda x:
-        #             # x or self.show_player(uid, self.ids[uid])
-        #             self.on_mystat(uid)
-        #                     ),
-        #         "end": (lambda x:
-        #             # self.state != State.EVENT or self.now_player().id != uid or
-        #                 # self.now_player().pending == Pending.CHANGE or
-        #                 # self.end()
-        #                 self.on_end(uid)
-        #                ),
-        #         "help": (lambda x:
-        #             # x or 
-        #                 # self.out.send_help()
-        #                 self.on_help()
-        #               ),
-        #         "showpotion": (lambda x:
-        #             # x or 
-        #                 # self.out.send_potion(uid, self.ids[uid].name, self.ids[uid].potions)
-        #                 self.on_show_potion(uid)
-        #               ),
-        #         "drink": (lambda x:
-        #             # self.state != State.PENDING or self.now_player().id != uid or # unless
-        #                 # self.drink(self.now_player(), args)
-        #                 self.on_drink(uid, args)
-        #               ),
-        #     }[msg](self.state == State.UNSTARTED)
-        # except KeyError:
-        #     if msg == "join":
-        #         if self.state == State.UNSTARTED:
-        #             if uid not in self.ids:
-        #                 self.players.append(Player(uid, name, username))
-        #                 self.ids.update({uid : self.players[-1]})
-        #                 self.out.send_welcome(name)
-        #                 if len(self.players) == 4:
-        #                     self.start()
-        #         else:
-        #             if len(self.players) < 4 and uid not in self.ids:
-        #                 self.players.append(Player(uid, name, username))
-        #                 self.ids.update({uid : self.players[-1]})
-        #                 self.out.send_welcome(name)
-        #         return
-        #     if(self.state != State.UNSTARTED):
-        #         if msg == "change":
-        #             self.out.send_change(self.ids[uid].name, uid, self.ids[uid].unused_weapons + self.ids[uid].unused_armors)
-        #         elif msg == "retire":
-        #             if self.ids[uid].pending != Pending.RETIRE:
-        #                 self.out.send_retire_confirm(self.ids[uid].name)
-        #                 self.ids[uid].pending = Pending.RETIRE
-        #             else:
-        #                 self.out.send_retire(self.ids[uid].name)
-        #                 idx = self.players.index(self.ids[uid])
-        #                 self.players.pop(idx)
-        #                 del self.ids[uid]
-        #                 if len(self.players) == 0:
-        #                     self.endgame()
-        #                     return
-        #                 if idx < self.now_player_no:
-        #                     self.now_player_no -= 1
-        #                 elif idx == self.now_player_no:
-        #                     self.next_player()
-        #         elif msg == "showstat":
-        #             self.out.send_stat(uid)
-        #             stat_ids[uid] = self
+
     def on_callback(self, query_data, uid, identifier):
         print("on callback\nquery_data: {}\nuid: {}\nidentifier: {}\n".format(query_data, uid, identifier))
         query_data = query_data.split()
         try:
             if query_data[0] == "change" and len(query_data) > 2:
                 if uid == int(query_data[1]):
+                    # TODO: has do something here
                     changed = self.ids[uid].change2(query_data[2])
                     if changed:
                         print("change called")
@@ -496,6 +400,7 @@ class Game:
         self.__init__(self.id, self.out)
 
 
+#user_id -> the game they're questing
 stat_ids: Dict[int, Game] = dict()
 
 
