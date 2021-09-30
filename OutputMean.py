@@ -413,3 +413,60 @@ class Output:
     @sending
     def send_end_game(self):
         self._send_message(self.id, "遊戲已結束")
+
+    def direct_from_in(self, game, query_data, uid, identifier):
+        try:
+            if query_data[0] == "change" and len(query_data) > 2:
+                if uid == int(query_data[1]):
+                    game.request_change(uid, query_data[2], identifier)
+                else:
+                    print(uid, query_data)
+            elif query_data[0] == "end":
+                game.request_end(uid)
+            elif query_data[0] == "showstat":
+                try:
+                    if len(query_data) > 3:
+                        if query_data[1] == "monster":
+                            game.show_monster(uid, query_data[3], Monsters[int(query_data[2])][query_data[3]])
+                    if len(query_data) > 2:
+                        if query_data[1] == "monster":
+                            i = int(query_data[2])
+                            self.stat_monsters(identifier, i)
+                        elif query_data[1] == "weapon":
+                            start = int(query_data[2])
+                            self.stat_weapons(identifier, start)
+                        elif query_data[1] == "armor":
+                            start = int(query_data[2])
+                            self.stat_armors(identifier, start)
+                        elif query_data[1] == "boss":
+                            i = int(query_data[2])
+                            game.show_monster(uid, Bosses[i][0], Bosses[i][1:])
+                        elif query_data[1] == "item":
+                            if query_data[2] in Potions:
+                                potion = Potions[query_data[2]]
+                                self.stat_item(uid, potion)
+                    elif len(query_data) > 1:
+                        if query_data[1] == "player":
+                            self.stat_players(game.get_players(), identifier)
+                        elif query_data[1] == "boss":
+                            self.stat_bosses(identifier)
+                        elif query_data[1] == "item":
+                            self.stat_items(identifier)
+                        elif query_data[1] == "monster":
+                            self.stat_monster_stage(identifier)
+                    else:
+                        self.stat_category(identifier)
+                except:
+                    pass
+            elif query_data[0] == "showplayer" and len(query_data)>1:
+                try:
+                    show_player_id = int(query_data[1])
+                    game.request_show_player(uid, show_player_id)
+                except:
+                    pass
+            elif query_data[0] == "showweapon" and len(query_data)>1:
+                self.stat_weapon(uid, query_data[1])
+            elif query_data[0] == "showarmor" and len(query_data)>1:
+                self.stat_armor(uid, query_data[1])
+        except:
+            pass
