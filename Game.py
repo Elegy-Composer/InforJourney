@@ -6,7 +6,7 @@ from num2words import num2words
 
 from OutputMean import Output
 from Map import GenMap
-from Data import Pending #Armors, Exps, Monsters, Bosses, Potions, Weapons
+from Data import Pending
 from Player import Player
 
 class State(Enum):
@@ -66,20 +66,17 @@ class Game:
     @require_game_state(State.PENDING)
     def on_jizz(self, uid, moves = None):
         if self.now_player().id == uid:
-            # self.move(self.now_player(), args)
             self.move(self.now_player(), moves)
 
     @require_game_state(State.EVENT)
     def on_upgrade(self, uid, item, time):
         if self.now_player().id == uid and \
             self.now_player().pending == Pending.BLACKSMITH:
-            # self.now_player().upgrade(args[0], self.out, 1 if len(args) < 2 else args[1])
             self.now_player().upgrade(item, self.out, time)
 
     @require_game_state(State.EVENT)
     def on_buy(self, uid, item_no):
         if self.now_player().id == uid and self.now_player().pending == Pending.SHOP:
-            # self.now_player().purchase(int(args[0]),self.out)
             self.now_player().purchase(item_no, self.out)
 
     @require_game_state(Not(State.UNSTARTED))
@@ -102,7 +99,6 @@ class Game:
     @require_game_state(State.PENDING)
     def on_drink(self, uid, potion_index):
         if self.now_player().id == uid:
-            # self.drink(self.now_player(), args)
             self.drink(self.now_player(), potion_index)
     
     def on_join(self, uid, name, username):
@@ -166,10 +162,6 @@ class Game:
     
     def request_show_player(self, uid, show_player_id):
         self.show_player(uid, self.ids[show_player_id])
-
-    # def on_callback(self, query_data, uid, identifier):
-    #     print("on callback\nquery_data: {}\nuid: {}\nidentifier: {}\n".format(query_data, uid, identifier))
-    #     self.passage(query_data, uid, identifier)
        
     def show_player(self, uid, entity):
         print('showing')
@@ -199,10 +191,6 @@ class Game:
         self.state = State.EVENT
         if not isinstance(moved, int):
             moved = randint(1, 4)
-        # try:
-        #     moved = int(args[0])
-        # except:
-        #     moved = randint(1, 4)
         self.out.send_jizz_result(player.name, num2words(moved))
         player.move(moved)
         for other_player in self.players:
@@ -218,12 +206,8 @@ class Game:
         else:
             self.end()
     def drink(self, player, i):
-        # try:
-            # i = int(args[0])
-            self.out.send_heal_result(player, player.potions[i], player.potions[i].drink(player))
-            player.potions.pop(i)
-        # except:
-        #     self.out.send_wrong_argument()
+        self.out.send_heal_result(player, player.potions[i], player.potions[i].drink(player))
+        player.potions.pop(i)
     def endgame(self):
         self.out.send_end_game()
         game_stat_ids = [k for k,v in stat_ids.items() if v == self]
