@@ -18,8 +18,6 @@ mystat - Show your status
 showpotion - Show all your potions
 showstat - Show status of chosen entity
 retire - retire from game
-exp - Show your exp
-coin - Show your coins
 help - Show game help"""
 
 def sending(func):
