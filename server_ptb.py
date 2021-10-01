@@ -6,6 +6,9 @@ from telegram.ext import (Filters, Updater, Updater, CommandHandler,
 from Game import Game, stat_ids
 
 games: Dict [int, Game] = {}
+updater = Updater(TOKEN)
+dispatcher = updater.dispatcher
+print(f"@{updater.bot.getMe().username}")
 
 def pre_process(update, context):
     global gid, game, uid
@@ -16,25 +19,44 @@ def pre_process(update, context):
     game = games[gid]
     uid = update.message.from_user.id
 
+def add_command(name=None, group=1):
+    def wrapper(func):
+        nonlocal name
+        if not name:
+            name = func.__name__
+        dispatcher.add_handler(CommandHandler(name, func), group)
+        return func
+    return wrapper
+
+@add_command()
 def start(update, context):
     game.on_start()
 
+@add_command()
 def jizz(update, context):
     try:
         game.on_jizz(uid, int(context.args[0]))
     except:
         game.on_jizz(uid)
 
-def map(update, context):
+@add_command("map")
+def show_map(update, context):
     game.on_map()
 
+@add_command()
 def pos(update, context):
     game.on_pos(uid)
 
+@add_command()
 def upgrade(update, context):
     args = context.args
-    game.on_upgrade(uid, args[0], 1 if len(args) < 2 else args[1])
+    try:
+        game.on_upgrade(uid, args[0], 1 if len(args) < 2 else args[1])
+    except Exception as e:
+        print("ERROR:", e)
+        game.out.send_wrong_argument()
 
+@add_command()
 def buy(update, context):
     args = context.args
     try:
@@ -43,18 +65,23 @@ def buy(update, context):
         print("ERROR:", e)
         game.out.send_wrong_argument()
 
+@add_command()
 def mystat(update, context):
     game.on_mystat(uid)
 
+@add_command()
 def end(update, context):
     game.on_end(uid)
 
-def help(update, context):
+@add_command("help")
+def show_help(update, context):
     game.on_help()
 
+@add_command()
 def showpotion(update, context):
     game.on_show_potion(uid)
 
+@add_command()
 def drink(update, context):
     args = context.args
     try:
@@ -62,18 +89,22 @@ def drink(update, context):
     except:
         game.out.send_wrong_argument()
 
+@add_command()
 def join(update, context):
     name = update.message.from_user.first_name
     username = update.message.from_user.username
     # if there is no username, this column will be None
     game.on_join(uid, name, username)
 
+@add_command()
 def change(update, context):
     game.on_change(uid)
 
+@add_command()
 def retire(update, context):
     game.on_retire(uid)
 
+@add_command()
 def showstat(update, context):
     game.on_show_stat(uid)
 
@@ -95,16 +126,8 @@ def handle_callback(update, context):
         game.passage(query_data.split(), from_id, identifier)
     query.answer()
 
-updater = Updater(TOKEN)
-dispatcher = updater.dispatcher
-print(f"@{updater.bot.getMe().username}")
 
 dispatcher.add_handler(MessageHandler(Filters.command, pre_process), 0)
-
-for func in [start, jizz, map, pos, upgrade, buy, 
-    mystat, end, help, showpotion, 
-    drink, join, change, retire, showstat, ]:
-    dispatcher.add_handler(CommandHandler(func.__name__, func), 1)
 dispatcher.add_handler(CallbackQueryHandler(handle_callback))
 
 updater.start_polling()
