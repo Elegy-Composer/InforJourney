@@ -176,8 +176,8 @@ class Player(Entity):
         return False
     def upgrade(self, item, out, times=1):
         blacksmith = self.on_hand.popleft()
+        self.on_hand.append(blacksmith)
         assert(isinstance(blacksmith,Blacksmith))
-        self.pending = Pending.NONE
         if item not in ["weapon","armor", "w", "a"]:
             out.send_wrong_argument()
             return
@@ -193,8 +193,7 @@ class Player(Entity):
             updrade_times += 1
         else:
             out.send_upgrade_full(updrade_times)
-        self.on_hand.append(blacksmith)
-
+        self.pending = Pending.NONE
         if self.pending == Pending.NONE:
             self.meet(self.on_hand[0], out)
         
@@ -202,13 +201,13 @@ class Player(Entity):
         pprint(self.on_hand)
         print("before purchase")
         shop = self.on_hand.popleft()
-        self.pending = Pending.NONE
         self.on_hand.append(shop)
         if shop.buy(self,itemno, out):
             pprint(self.on_hand)
             print("end of purchase")
         else:
             out.send_not_enough_coin()
+        self.pending = Pending.NONE
         if self.pending == Pending.NONE:
             self.meet(self.on_hand[0], out)
         
