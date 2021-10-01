@@ -102,14 +102,16 @@ class Player(Entity):
                 said_msg = out.send_reach_shop(self.name, said_msg)
             said_msg = out.send_shop_items(event.goods, event.price, said_msg)
             self.pending = Pending.SHOP
-            self.on_hand.append(event)
+            if event not in self.on_hand:
+                self.on_hand.append(event)
             return False
         if isinstance(event, Blacksmith):
             if first_time:
                 said_msg = out.send_reach_blacksmith(self.name, said_msg)
             said_msg = out.send_blacksmith_service(event.upgrade, event.get_cost(self.weapon), event.get_cost(self.armor), said_msg)
             self.pending = Pending.BLACKSMITH
-            self.on_hand.append(event)
+            if event not in self.on_hand:
+                self.on_hand.append(event)
             return False
         elif(isinstance(event, Chest)):
             self.recieve(event.coin)
@@ -201,8 +203,8 @@ class Player(Entity):
         print("before purchase")
         shop = self.on_hand.popleft()
         self.pending = Pending.NONE
+        self.on_hand.append(shop)
         if shop.buy(self,itemno, out):
-            self.on_hand.append(shop)
             pprint(self.on_hand)
             print("end of purchase")
         else:

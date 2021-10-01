@@ -48,7 +48,7 @@ class Game:
         self.now_player_no = -1
         self.out = out
 
-    def now_player(self):
+    def now_player(self) -> Player:
         return self.players[self.now_player_no]
 
 
