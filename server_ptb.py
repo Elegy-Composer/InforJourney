@@ -14,7 +14,7 @@ def pre_process(update, context):
     global gid, game, uid
     gid = update.message.chat_id
     if gid not in games:
-        out = Output(context.bot, gid)
+        out = Output(context.bot, gid, gid)
         games[gid] = Game(gid, out)
     game = games[gid]
     uid = update.message.from_user.id
@@ -112,18 +112,21 @@ def handle_callback(update, context):
     query = update.callback_query
     chat_id = query.message.chat_id
     from_id = query.from_user.id
-    query_data = query.data
-
+    query_data = query.data.split()
+    gid = int(query_data[-1])
+    del query_data[-1]
     identifier = (chat_id, query.message.message_id)
-    game = None
-    if chat_id in games:
-        game = games[chat_id] 
-    elif chat_id in stat_ids:
-        game = stat_ids[chat_id] 
-    else:
-        print("Game did not start")
-    if game:
-        game.passage(query_data.split(), from_id, identifier)
+    if gid in games:
+        games[gid].passage(query_data, from_id, identifier)
+    # game = None
+    # if chat_id in games:
+    #     game = games[chat_id] 
+    # elif chat_id in stat_ids:
+    #     game = stat_ids[chat_id] 
+    # else:
+    #     print("Game did not start")
+    # if game:
+    #     game.passage(query_data.split(), from_id, identifier)
     query.answer()
 
 
