@@ -117,7 +117,7 @@ class Game:
         
     @require_game_state(Not(State.UNSTARTED))
     def on_change(self, uid):
-        self.out.send_change(self.ids[uid].name, uid, self.ids[uid].unused_weapons + self.ids[uid].unused_armors)
+        self.out.send_change(self.id, self.ids[uid].name, uid, self.ids[uid].unused_weapons + self.ids[uid].unused_armors)
     
     @require_game_state(Not(State.UNSTARTED))
     def on_retire(self, uid):
@@ -139,7 +139,7 @@ class Game:
 
     @require_game_state(Not(State.UNSTARTED))
     def on_show_stat(self, uid):
-        self.out.send_stat(uid)
+        self.out.send_stat(self.id, uid)
         stat_ids[uid] = self
 
     def passage(self, *args, **kwargs):

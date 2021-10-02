@@ -7,11 +7,11 @@ from Data import Pending, Exps, LevelUp
 from Item import Weapon, Armor, Item
 from pprint import pprint
 from collections import deque
-from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
+# from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
 
-EndMarkup = InlineKeyboardMarkup(inline_keyboard=[
-                   [InlineKeyboardButton(text='Leave', callback_data='end')],
-               ])
+# EndMarkup = InlineKeyboardMarkup(inline_keyboard=[
+#                    [InlineKeyboardButton(text='Leave', callback_data='end')],
+#                ])
 
 def Entity_type(entity):
     if isinstance(entity, Boss):

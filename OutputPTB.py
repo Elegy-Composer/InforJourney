@@ -28,8 +28,8 @@ def sending(func):
     return sending_wrapper
 
 class OutputPTB(Output):
-    def __init__(self, bot, id):
-        super().__init__(bot, id, sending)
+    def __init__(self, bot, id, gid):
+        super().__init__(bot, id, gid, sending)
 
     def _send_message(self, *args, **kwargs):
         return self.bot.send_message(*args, **kwargs, timeout=15)
@@ -58,7 +58,7 @@ class OutputPTB(Output):
             return message
         
     @staticmethod
-    def gen_inline_keyboard_barkup(**kwargs):
+    def gen_inline_keyboard_markup(**kwargs):
         return InlineKeyboardMarkup(**kwargs)
     
     @staticmethod

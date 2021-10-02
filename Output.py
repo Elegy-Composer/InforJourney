@@ -9,11 +9,11 @@ class Output(ABC):
     def BadRequest() -> type:
         pass
     
-    def __init__(self, bot, id, decorator):
+    def __init__(self, bot, id, gid, decorator):
         self.bot = bot
         self.id = id
         self.end_markup = self.gen_inline_keyboard_barkup(inline_keyboard=[
-            [self.gen_inline_keyboard_button(text='Leave', callback_data='end')],
+            [self.gen_inline_keyboard_button(text='Leave', callback_data=f'end {gid}')],
         ])
         print("calling Output.__init__")
         for name in dir(self):
@@ -113,10 +113,10 @@ class Output(ABC):
         self._send_message(self.id, "參數錯誤")
 
     @sending
-    def send_change(self, name, uid, avaliable_items):
+    def send_change(self, gid, name, uid, avaliable_items):
         kb_list = []
         for w in avaliable_items:
-            kb_list.append([self.gen_inline_keyboard_button(text=w.name, callback_data="change "+str(uid)+" "+w.name)])
+            kb_list.append([self.gen_inline_keyboard_button(text=w.name, callback_data=f"change {uid} {w.name} {gid}")])#callback_data="change "+str(uid)+" "+w.name+" "+str(gid))])
 
         if kb_list:
             keyboard = self.gen_inline_keyboard_markup(inline_keyboard=kb_list)
@@ -136,122 +136,133 @@ class Output(ABC):
     def send_retire(self, name):
         self._send_message(self.id, f"{name}離開了遊戲")
     
-    @sending
-    def send_stat(self, uid):
+    def _create_catagory_kb(self, gid):
         kb_list = [
-            [self.gen_inline_keyboard_button(text="小怪", callback_data="showstat monster"),
-            self.gen_inline_keyboard_button(text="首領", callback_data="showstat boss")],
-            [self.gen_inline_keyboard_button(text="玩家", callback_data="showstat player"),
-            self.gen_inline_keyboard_button(text="武器", callback_data="showstat weapon 0")],
-            [self.gen_inline_keyboard_button(text="防具", callback_data="showstat armor 0"),
-            self.gen_inline_keyboard_button(text="道具", callback_data="showstat item")]
+            [self.gen_inline_keyboard_button(text="小怪", callback_data=f"showstat monster {gid}"),
+            self.gen_inline_keyboard_button(text="首領", callback_data=f"showstat boss {gid}")],
+            [self.gen_inline_keyboard_button(text="玩家", callback_data=f"showstat player {gid}"),
+            self.gen_inline_keyboard_button(text="武器", callback_data=f"showstat weapon 0 {gid}")],
+            [self.gen_inline_keyboard_button(text="防具", callback_data=f"showstat armor 0 {gid}"),
+            self.gen_inline_keyboard_button(text="道具", callback_data=f"showstat item {gid}")]
         ]
-        keyboard = self.gen_inline_keyboard_markup(inline_keyboard=kb_list)
-        self._send_message(uid, "請選擇種類", reply_markup=keyboard)
+        return self.gen_inline_keyboard_markup(inline_keyboard=kb_list)
 
     @sending
-    def stat_category(self, identifier):
-        kb_list = [
-            [self.gen_inline_keyboard_button(text="小怪", callback_data="showstat monster"),
-            self.gen_inline_keyboard_button(text="首領", callback_data="showstat boss")],
-            [self.gen_inline_keyboard_button(text="玩家", callback_data="showstat player"),
-            self.gen_inline_keyboard_button(text="武器", callback_data="showstat weapon 0")],
-            [self.gen_inline_keyboard_button(text="防具", callback_data="showstat armor 0"),
-            self.gen_inline_keyboard_button(text="道具", callback_data="showstat item")]
-        ]
-        keyboard = self.gen_inline_keyboard_markup(inline_keyboard=kb_list)
-        self._edit_message_text("請選擇種類", identifier=identifier, reply_markup=keyboard)
+    def send_stat(self, gid, uid):
+        # kb_list = [
+        #     [self.gen_inline_keyboard_button(text="小怪", callback_data=f"showstat monster {gid}"),
+        #     self.gen_inline_keyboard_button(text="首領", callback_data=f"showstat boss {gid}")],
+        #     [self.gen_inline_keyboard_button(text="玩家", callback_data=f"showstat player {gid}"),
+        #     self.gen_inline_keyboard_button(text="武器", callback_data=f"showstat weapon 0 {gid}")],
+        #     [self.gen_inline_keyboard_button(text="防具", callback_data=f"showstat armor 0 {gid}"),
+        #     self.gen_inline_keyboard_button(text="道具", callback_data=f"showstat item {gid}")]
+        # ]
+        # keyboard = self.gen_inline_keyboard_markup(inline_keyboard=kb_list)
+        self._send_message(uid, "請選擇種類", reply_markup=self._create_catagory_kb(gid))
 
     @sending
-    def stat_monster_stage(self, identifier):
+    def stat_category(self, gid, identifier):
+        # kb_list = [
+        #     [self.gen_inline_keyboard_button(text="小怪", callback_data="showstat monster"),
+        #     self.gen_inline_keyboard_button(text="首領", callback_data="showstat boss")],
+        #     [self.gen_inline_keyboard_button(text="玩家", callback_data="showstat player"),
+        #     self.gen_inline_keyboard_button(text="武器", callback_data="showstat weapon 0")],
+        #     [self.gen_inline_keyboard_button(text="防具", callback_data="showstat armor 0"),
+        #     self.gen_inline_keyboard_button(text="道具", callback_data="showstat item")]
+        # ]
+        # keyboard = self.gen_inline_keyboard_markup(inline_keyboard=kb_list)
+        self._edit_message_text("請選擇種類", identifier=identifier, reply_markup=self._create_catagory_kb(gid))
+
+    @sending
+    def stat_monster_stage(self, gid, identifier):
         kb_list = []
         for i in range(4):
-            kb_list.append([self.gen_inline_keyboard_button(text=f"階段{i+1}", callback_data=f"showstat monster {i}")])
-        kb_list.append([self.gen_inline_keyboard_button(text="上一層", callback_data="showstat")])
+            kb_list.append([self.gen_inline_keyboard_button(text=f"階段{i+1}", callback_data=f"showstat monster {i} {gid}")])
+        kb_list.append([self.gen_inline_keyboard_button(text="上一層", callback_data=f"showstat {gid}")])
         keyboard = self.gen_inline_keyboard_markup(inline_keyboard=kb_list)
         self._edit_message_text("請選擇", identifier=identifier, reply_markup=keyboard)
 
     @sending
-    def stat_monsters(self, identifier, stage):
+    def stat_monsters(self, gid, identifier, stage):
         kb_list = []
         display = list(Monsters[stage])
         for name1, name2 in zip(display[::2], display[1::2]):
             kb_list.append([
-                self.gen_inline_keyboard_button(text=name1, callback_data=f"showstat monster {stage} {name1}"), 
-                self.gen_inline_keyboard_button(text=name2, callback_data=f"showstat monster {stage} {name2}")
+                self.gen_inline_keyboard_button(text=name1, callback_data=f"showstat monster {stage} {name1} {gid}"), 
+                self.gen_inline_keyboard_button(text=name2, callback_data=f"showstat monster {stage} {name2} {gid}")
             ])
         if len(display) % 2:
-            kb_list.append([self.gen_inline_keyboard_button(text=display[-1], callback_data=f"showstat monster {stage} {display[-1]}")])
-        kb_list.append([self.gen_inline_keyboard_button(text="上一層", callback_data="showstat monster")])
+            kb_list.append([self.gen_inline_keyboard_button(text=display[-1], callback_data=f"showstat monster {stage} {display[-1]} {gid}")])
+        kb_list.append([self.gen_inline_keyboard_button(text="上一層", callback_data=f"showstat monster {gid}")])
         keyboard = self.gen_inline_keyboard_markup(inline_keyboard=kb_list)
         self._edit_message_text("請選擇", identifier=identifier, reply_markup=keyboard)
 
     @sending
-    def stat_bosses(self, identifier):
+    def stat_bosses(self, gid, identifier):
         kb_list = []
         for i in range(4):
-            kb_list.append([self.gen_inline_keyboard_button(text=Bosses[i][0], callback_data=f"showstat boss {i}")])
-        kb_list.append([self.gen_inline_keyboard_button(text="上一層", callback_data="showstat")])
+            kb_list.append([self.gen_inline_keyboard_button(text=Bosses[i][0], callback_data=f"showstat boss {i} {gid}")])
+        kb_list.append([self.gen_inline_keyboard_button(text="上一層", callback_data=f"showstat {gid}")])
         keyboard = self.gen_inline_keyboard_markup(inline_keyboard=kb_list)
         self._edit_message_text("請選擇", identifier=identifier, reply_markup=keyboard)
 
     @sending
-    def stat_players(self, players, identifier):
+    def stat_players(self, gid, players, identifier):
         kb_list = []
         for player in players:
-            kb_list.append([self.gen_inline_keyboard_button(text=player.name, callback_data=f"showplayer {player.id}")])
-        kb_list.append([self.gen_inline_keyboard_button(text="上一層", callback_data="showstat")])
+            kb_list.append([self.gen_inline_keyboard_button(text=player.name, callback_data=f"showplayer {player.id} {gid}")])
+        kb_list.append([self.gen_inline_keyboard_button(text="上一層", callback_data=f"showstat {gid}")])
         keyboard = self.gen_inline_keyboard_markup(inline_keyboard=kb_list)
         self._edit_message_text("請選擇", identifier=identifier, reply_markup=keyboard)
 
     @sending
-    def stat_items(self, identifier):
+    def stat_items(self, gid, identifier):
         kb_list = []
         for p in Potions:
-            kb_list.append([self.gen_inline_keyboard_button(text=p, callback_data=f"showstat item {p}")])
-        kb_list.append([self.gen_inline_keyboard_button(text="上一層", callback_data="showstat")])
+            kb_list.append([self.gen_inline_keyboard_button(text=p, callback_data=f"showstat item {p} {gid}")])
+        kb_list.append([self.gen_inline_keyboard_button(text="上一層", callback_data=f"showstat {gid}")])
         keyboard = self.gen_inline_keyboard_markup(inline_keyboard=kb_list)
         self._edit_message_text("請選擇", identifier=identifier, reply_markup=keyboard)
 
     @sending
-    def stat_weapons(self, identifier, page):
+    def stat_weapons(self, gid, identifier, page):
         kb_list = []
         weapon_list = list(Weapons.items())
         if page:
-            kb_list.append([self.gen_inline_keyboard_button(text="<<", callback_data=f"showstat weapon {page-1}")])
+            kb_list.append([self.gen_inline_keyboard_button(text="<<", callback_data=f"showstat weapon {page-1} {gid}")])
 
         display = weapon_list[page*6:min(page*6+6, len(weapon_list))]
         for item1, item2 in zip(display[::2], display[1::2]):
             kb_list.append([
-                self.gen_inline_keyboard_button(text=item1[0], callback_data=f"showweapon {item1[0]}"),
-                self.gen_inline_keyboard_button(text=item2[0], callback_data=f"showweapon {item2[0]}")
+                self.gen_inline_keyboard_button(text=item1[0], callback_data=f"showweapon {item1[0]} {gid}"),
+                self.gen_inline_keyboard_button(text=item2[0], callback_data=f"showweapon {item2[0]} {gid}")
             ])
         if len(display) % 2:
-            kb_list.append([self.gen_inline_keyboard_button(text=display[-1][0], callback_data=f"showweapon {display[-1][0]}")])
+            kb_list.append([self.gen_inline_keyboard_button(text=display[-1][0], callback_data=f"showweapon {display[-1][0]} {gid}")])
         if page*6 + 6 < len(weapon_list):
-            kb_list.append([self.gen_inline_keyboard_button(text=">>", callback_data=f"showstat weapon {page+1}")])
-        kb_list.append([self.gen_inline_keyboard_button(text="上一層", callback_data="showstat")])
+            kb_list.append([self.gen_inline_keyboard_button(text=">>", callback_data=f"showstat weapon {page+1} {gid}")])
+        kb_list.append([self.gen_inline_keyboard_button(text="上一層", callback_data=f"showstat {gid}")])
         keyboard = self.gen_inline_keyboard_markup(inline_keyboard=kb_list)
         self._edit_message_text("請選擇", identifier=identifier, reply_markup=keyboard)
 
     @sending
-    def stat_armors(self, identifier, page):
+    def stat_armors(self, gid, identifier, page):
         kb_list = []
         armor_list = list(Armors.items())
         if page:
-            kb_list.append([self.gen_inline_keyboard_button(text="<<", callback_data=f"showstat armor {page-1}")])
+            kb_list.append([self.gen_inline_keyboard_button(text="<<", callback_data=f"showstat armor {page-1} {gid}")])
 
         display = armor_list[page*6:min(page*6+6, len(armor_list))]
         for item1, item2 in zip(display[::2], display[1::2]):
             kb_list.append([
-                self.gen_inline_keyboard_button(text=item1[0], callback_data=f"showarmor {item1[0]}"),
-                self.gen_inline_keyboard_button(text=item2[0], callback_data=f"showarmor {item2[0]}")
+                self.gen_inline_keyboard_button(text=item1[0], callback_data=f"showarmor {item1[0]} {gid}"),
+                self.gen_inline_keyboard_button(text=item2[0], callback_data=f"showarmor {item2[0]} {gid}")
             ])
         if len(display) % 2:
-            kb_list.append([self.gen_inline_keyboard_button(text=display[-1][0], callback_data=f"showarmor {display[-1][0]}")])
+            kb_list.append([self.gen_inline_keyboard_button(text=display[-1][0], callback_data=f"showarmor {display[-1][0]} {gid}")])
         if page*6 + 6 < len(armor_list):
-            kb_list.append([self.gen_inline_keyboard_button(text=">>", callback_data=f"showstat armor {page+1}")])
-        kb_list.append([self.gen_inline_keyboard_button(text="上一層", callback_data="showstat")])
+            kb_list.append([self.gen_inline_keyboard_button(text=">>", callback_data=f"showstat armor {page+1} {gid}")])
+        kb_list.append([self.gen_inline_keyboard_button(text="上一層", callback_data=f"showstat {gid}")])
         keyboard = self.gen_inline_keyboard_markup(inline_keyboard=kb_list)
         self._edit_message_text("請選擇", identifier=identifier, reply_markup=keyboard)
 
@@ -428,13 +439,13 @@ class Output(ABC):
                     if len(query_data) > 2:
                         if query_data[1] == "monster":
                             i = int(query_data[2])
-                            self.stat_monsters(identifier, i)
+                            self.stat_monsters(game.id, identifier, i)
                         elif query_data[1] == "weapon":
                             start = int(query_data[2])
-                            self.stat_weapons(identifier, start)
+                            self.stat_weapons(game.id, identifier, start)
                         elif query_data[1] == "armor":
                             start = int(query_data[2])
-                            self.stat_armors(identifier, start)
+                            self.stat_armors(game.id, identifier, start)
                         elif query_data[1] == "boss":
                             i = int(query_data[2])
                             game.show_monster(uid, Bosses[i][0], Bosses[i][1:])
@@ -444,15 +455,15 @@ class Output(ABC):
                                 self.stat_item(uid, potion)
                     elif len(query_data) > 1:
                         if query_data[1] == "player":
-                            self.stat_players(game.get_players(), identifier)
+                            self.stat_players(game.id, game.get_players(), identifier)
                         elif query_data[1] == "boss":
-                            self.stat_bosses(identifier)
+                            self.stat_bosses(game.id, identifier)
                         elif query_data[1] == "item":
-                            self.stat_items(identifier)
+                            self.stat_items(game.id, identifier)
                         elif query_data[1] == "monster":
-                            self.stat_monster_stage(identifier)
+                            self.stat_monster_stage(game.id, identifier)
                     else:
-                        self.stat_category(identifier)
+                        self.stat_category(game.id, identifier)
                 except:
                     pass
             elif query_data[0] == "showplayer" and len(query_data)>1:
