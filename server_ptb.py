@@ -1,4 +1,4 @@
-from OutputMean import Output
+from OutputPTB import OutputPTB as Output
 from secret import TOKEN
 from typing import Dict
 from telegram.ext import (Filters, Updater, Updater, CommandHandler, 
@@ -94,6 +94,7 @@ def join(update, context):
     name = update.message.from_user.first_name
     username = update.message.from_user.username
     # if there is no username, this column will be None
+    print(game.out.send_welcome)
     game.on_join(uid, name, username)
 
 @add_command()
