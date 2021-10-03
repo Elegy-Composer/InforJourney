@@ -7,29 +7,29 @@ from telegram.error import BadRequest, RetryAfter, TimedOut, Unauthorized
 from time import sleep
 
 
-def sending(func):
-    def sending_wrapper(*args, **kwargs):
-        try:
-            print(f"running {func.__name__} in decorator")
-            return func(*args, **kwargs)
-        except RetryAfter as e:
-            print(f"retry after {e.retry_after} seconds")
-            sleep(5)
-            return sending_wrapper(*args, **kwargs)
-        except TimedOut:
-            sleep(5)
-            print("time out, sleep 5 seconds")
-            # print("try do nothing at time out")
-            return sending_wrapper(*args, **kwargs)
-        except (Unauthorized):
-            #pm failed
-            #args[0] is self
-            args[0]._send_message(args[0].id, "Please add me! @inforJourneyBot")
-    return sending_wrapper
+# def sending(func):
+#     def sending_wrapper(*args, **kwargs):
+#         try:
+#             print(f"running {func.__name__} in decorator")
+#             return func(*args, **kwargs)
+#         except RetryAfter as e:
+#             print(f"retry after {e.retry_after} seconds")
+#             sleep(5)
+#             return sending_wrapper(*args, **kwargs)
+#         except TimedOut:
+#             sleep(5)
+#             print("time out, sleep 5 seconds")
+#             # print("try do nothing at time out")
+#             return sending_wrapper(*args, **kwargs)
+#         except (Unauthorized):
+#             #pm failed
+#             #args[0] is self
+#             args[0]._send_message(args[0].id, "Please add me! @inforJourneyBot")
+#     return sending_wrapper
 
 class OutputPTB(Output):
     def __init__(self, bot, id, gid):
-        super().__init__(bot, id, gid, sending)
+        super().__init__(bot, id, gid)#, sending)
 
     def _send_message(self, *args, **kwargs):
         return self.bot.send_message(*args, **kwargs, timeout=15)
@@ -68,4 +68,25 @@ class OutputPTB(Output):
     @staticmethod
     def BadRequest() -> type:
         return BadRequest
+
+    @staticmethod
+    def sending_decorator(func):
+        def sending_wrapper(*args, **kwargs):
+            try:
+                print(f"running {func.__name__} in decorator")
+                return func(*args, **kwargs)
+            except RetryAfter as e:
+                print(f"retry after {e.retry_after} seconds")
+                sleep(5)
+                return sending_wrapper(*args, **kwargs)
+            except TimedOut:
+                sleep(5)
+                print("time out, sleep 5 seconds")
+                # print("try do nothing at time out")
+                return sending_wrapper(*args, **kwargs)
+            except (Unauthorized):
+                #pm failed
+                #args[0] is self
+                args[0]._send_message(args[0].id, "Please add me! @inforJourneyBot")
+        return sending_wrapper
 
