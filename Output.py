@@ -8,7 +8,8 @@ def sending(func):
         if not isinstance(args[0], Output):
             raise TypeError("@sending should only be used on Output instance functions")
 
-        @type(args[0]).sending_decorator
+        t = type(args[0])
+        @t.sending_decorator
         def runner():
             return func(*args, **kwargs)
         
