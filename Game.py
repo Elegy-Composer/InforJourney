@@ -4,7 +4,7 @@ from time import sleep
 from random import randint
 from num2words import num2words
 
-from OutputMean import Output
+from Output import Output
 from Map import GenMap
 from Data import Pending
 from Player import Player

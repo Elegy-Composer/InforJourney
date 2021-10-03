@@ -40,7 +40,7 @@ def handle(msg):
         return
     gid = msg["chat"]["id"]
     if gid not in games:
-        out = Output(bot, gid)
+        out = Output(bot, gid, gid)
         games[gid] = Game(gid, out)
     in_data = msg["text"].replace("@inforJourneyBot", "").split()
     if "username" in msg["from"]:

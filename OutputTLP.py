@@ -6,22 +6,22 @@ from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
 from Output import Output
 
 
-def sending(func):
-    def sending_wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except TooManyRequestsError:
-            sleep(5)
-            return sending_wrapper(*args, **kwargs)
-        except (BotWasBlockedError, TelegramError):
-            #pm failed
-            #args[0] is self
-            args[0].bot.sendMessage(args[0].id, "Please add me! @inforJourneyBot")
-    return sending_wrapper
+# def sending(func):
+#     def sending_wrapper(*args, **kwargs):
+#         try:
+#             return func(*args, **kwargs)
+#         except TooManyRequestsError:
+#             sleep(5)
+#             return sending_wrapper(*args, **kwargs)
+#         except (BotWasBlockedError, TelegramError):
+#             #pm failed
+#             #args[0] is self
+#             args[0].bot.sendMessage(args[0].id, "Please add me! @inforJourneyBot")
+#     return sending_wrapper
 
 class OutputTLP(Output):
-    def __init__(self, bot, id):
-        super().__init__(bot, id, sending)
+    def __init__(self, bot, id, gid):
+        super().__init__(bot, id, gid) #, sending)
 
     def _send_message(self, *args, **kwargs):
         return self.bot.sendMessage(*args, **kwargs)
@@ -60,3 +60,17 @@ class OutputTLP(Output):
     @staticmethod
     def BadRequest() -> type:
         return TelegramError
+
+    @staticmethod
+    def sending_decorator(func):
+        def sending_wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except TooManyRequestsError:
+                sleep(5)
+                return sending_wrapper(*args, **kwargs)
+            except (BotWasBlockedError, TelegramError):
+                #pm failed
+                #args[0] is self
+                args[0].bot.sendMessage(args[0].id, "Please add me! @inforJourneyBot")
+        return sending_wrapper

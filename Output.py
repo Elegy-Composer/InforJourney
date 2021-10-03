@@ -3,22 +3,35 @@ from Player import Player
 from Data import *
 from time import sleep
 
+def sending(func):
+    def self_catcher(*args, **kwargs):
+        if not isinstance(args[0], Output):
+            raise TypeError("@sending should only be used on Output instance functions")
+
+        @type(args[0]).sending_decorator
+        def runner():
+            return func(*args, **kwargs)
+        
+        return runner()
+
+    return self_catcher
+
 class Output(ABC):
     @staticmethod
     @abstractmethod
     def BadRequest() -> type:
         pass
     
-    def __init__(self, bot, id, gid, decorator):
+    def __init__(self, bot, id, gid): #, decorator):
         self.bot = bot
         self.id = id
         self.end_markup = self.gen_inline_keyboard_barkup(inline_keyboard=[
             [self.gen_inline_keyboard_button(text='Leave', callback_data=f'end {gid}')],
         ])
-        print("calling Output.__init__")
-        for name in dir(self):
-            if name.startswith("send") or name.startswith("stat"):
-                setattr(self, name, decorator(getattr(self, name)))
+        # print("calling Output.__init__")
+        # for name in dir(self):
+        #     if name.startswith("send") or name.startswith("stat"):
+        #         setattr(self, name, decorator(getattr(self, name)))
 
     @abstractmethod
     def _send_message():
@@ -26,6 +39,11 @@ class Output(ABC):
 
     @abstractmethod
     def _edit_message_text():
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def sending_decorator(func):
         pass
 
     @staticmethod
