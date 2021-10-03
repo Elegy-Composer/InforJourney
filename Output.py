@@ -26,7 +26,7 @@ class Output(ABC):
     def __init__(self, bot, id, gid): #, decorator):
         self.bot = bot
         self.id = id
-        self.end_markup = self.gen_inline_keyboard_barkup(inline_keyboard=[
+        self.end_markup = self.gen_inline_keyboard_markup(inline_keyboard=[
             [self.gen_inline_keyboard_button(text='Leave', callback_data=f'end {gid}')],
         ])
         # print("calling Output.__init__")
@@ -49,7 +49,7 @@ class Output(ABC):
 
     @staticmethod
     @abstractmethod
-    def gen_inline_keyboard_barkup():
+    def gen_inline_keyboard_markup():
         pass
     
     @staticmethod
