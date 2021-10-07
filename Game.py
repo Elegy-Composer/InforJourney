@@ -21,22 +21,25 @@ class Not:
     def __init__(self, state: State):
         self.state = state
 
-def require_game_state(*states):
+def available_in_states(*states):
     def decorator(func):
         def state_check(*args, **kwargs):
             for state in states:
                 if isinstance(state, State):
-                    if args[0].state != state:
-                        return
+                    if args[0].state == state:
+                        return func(*args, **kwargs)
                 elif isinstance(state, Not):
-                    if args[0].state == state.state:
-                        return
+                    if args[0].state != state.state:
+                        return func(*args, **kwargs)
                 else:
                     raise ValueError("require_game_state only accept argument of type State or Not")
-            return func(*args, **kwargs)
         return state_check
     
     return decorator
+
+
+
+
 
 class Game:
     def __init__(self, groupid, out: Output):
@@ -51,52 +54,52 @@ class Game:
     def now_player(self) -> Player:
         return self.players[self.now_player_no]
 
-
+    @available_in_states(State.UNSTARTED)
     def on_start(self):
         self.start()
 
-    @require_game_state(Not(State.UNSTARTED))
+    @available_in_states(Not(State.UNSTARTED))
     def on_map(self):
         self.out.send_map()
     
-    @require_game_state(Not(State.UNSTARTED))
+    @available_in_states(Not(State.UNSTARTED))
     def on_pos(self, uid):
         self.out.send_pos(self.ids[uid].name, self.ids[uid].pos)
     
-    @require_game_state(State.PENDING)
+    @available_in_states(State.PENDING)
     def on_jizz(self, uid, moves = None):
         if self.now_player().id == uid:
             self.move(self.now_player(), moves)
 
-    @require_game_state(State.EVENT)
+    @available_in_states(State.EVENT)
     def on_upgrade(self, uid, item, time):
         if self.now_player().id == uid and \
             self.now_player().pending == Pending.BLACKSMITH:
             self.now_player().upgrade(item, self.out, time)
 
-    @require_game_state(State.EVENT)
+    @available_in_states(State.EVENT)
     def on_buy(self, uid, item_no):
         if self.now_player().id == uid and self.now_player().pending == Pending.SHOP:
             self.now_player().purchase(item_no, self.out)
 
-    @require_game_state(Not(State.UNSTARTED))
+    @available_in_states(Not(State.UNSTARTED))
     def on_mystat(self, uid):
         self.show_player(uid, self.ids[uid])
     
-    @require_game_state(State.EVENT)
+    @available_in_states(State.EVENT)
     def on_end(self, uid):
         if self.now_player().id == uid and self.now_player().pending != Pending.CHANGE:
             self.end()
 
-    @require_game_state(Not(State.UNSTARTED))
+    @available_in_states(Not(State.UNSTARTED))
     def on_help(self):
         self.out.send_help()
 
-    @require_game_state(Not(State.UNSTARTED))
+    @available_in_states(Not(State.UNSTARTED))
     def on_show_potion(self, uid):
         self.out.send_potion(uid, self.ids[uid].name, self.ids[uid].potions)
 
-    @require_game_state(State.PENDING)
+    @available_in_states(State.PENDING)
     def on_drink(self, uid, potion_index):
         if self.now_player().id == uid:
             self.drink(self.now_player(), potion_index)
@@ -115,11 +118,11 @@ class Game:
                 self.ids.update({uid : self.players[-1]})
                 self.out.send_welcome(name)
         
-    @require_game_state(Not(State.UNSTARTED))
+    @available_in_states(Not(State.UNSTARTED))
     def on_change(self, uid):
         self.out.send_change(self.id, self.ids[uid].name, uid, self.ids[uid].unused_weapons + self.ids[uid].unused_armors)
     
-    @require_game_state(Not(State.UNSTARTED))
+    @available_in_states(Not(State.UNSTARTED))
     def on_retire(self, uid):
         if self.ids[uid].pending != Pending.RETIRE:
             self.out.send_retire_confirm(self.ids[uid].name)
@@ -137,7 +140,7 @@ class Game:
             elif idx == self.now_player_no:
                 self.next_player()
 
-    @require_game_state(Not(State.UNSTARTED))
+    @available_in_states(Not(State.UNSTARTED))
     def on_show_stat(self, uid):
         self.out.send_stat(self.id, uid)
         stat_ids[uid] = self
@@ -170,8 +173,6 @@ class Game:
     def show_monster(self, uid, name, monster_data):
         self.out.stat_monster(uid, name, monster_data)
     def start(self):
-        if self.state != State.UNSTARTED:
-            return
         if len(self.players) == 0:
             return
         self.state = State.STARTED
