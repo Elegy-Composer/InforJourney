@@ -1,7 +1,7 @@
 from Data import Chests, Monsters, Weapons, Armors
 from Item import Weapon, Armor
 from Entity import Monster
-from Events import Chest
+from Events import Chest, Event
 from random import choice, randrange
 from pprint import pprint
 
@@ -15,9 +15,16 @@ def rand(things, weights):
             #print(seed)
             return things[i]
 
-class Gen:
+class Gen(Event):
     def __init__(self):
         pass
+
+    def gen(self, player_level, phase) -> Event:
+        pass
+
+    def invoke_event(self, player, out, first_time):
+        event = self.gen(player.lvl, player.phase())
+        return event.invoke_event(player, out, first_time)
 
 class MonsterGen(Gen):
     def __init__(self):
