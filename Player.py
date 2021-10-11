@@ -50,6 +50,23 @@ class Player(Entity):
     def entity_type(self):
         return "玩家"
 
+    def invoke_event(self, player, out, first_time):
+        # if this is triggered, it means someone meet this player and fight him
+        said_msg = None
+        said_msg = out.send_meet(player.name, self.entity_type(), self.name, said_msg)
+
+        res = player.fight(self)
+        said_msg = out.send_fight_result(res, said_msg)
+        if self.hp <= 0: # the player was beaten 
+            said_msg = out.send_beat(player.name, self.name, said_msg)
+            self.restart()
+        elif player.hp <= 0: # opponent player was beaten
+            said_msg = out.send_beaten(player.name, self.name, said_msg)
+            player.restart()
+        else :
+            said_msg = out.send_tie(said_msg)
+        return True
+
     def meet(self, event, out, first_time=False):
         print("meet")
         return event.invoke_event(self, out, first_time)
