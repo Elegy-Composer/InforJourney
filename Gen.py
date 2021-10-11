@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from Data import Chests, Monsters, Weapons, Armors
 from Item import Weapon, Armor
 from Entity import Monster
@@ -19,6 +20,7 @@ class Gen(Event):
     def __init__(self):
         pass
 
+    @abstractmethod
     def gen(self, player_level, phase) -> Event:
         pass
 
