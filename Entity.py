@@ -1,13 +1,17 @@
 from random import uniform
+from Events import Event
 from Item import Armor, Weapon
 
 
-class Entity:
+class Entity(Event):
     def __init__(self, name, hp, atk, dfd):
         self.name = name
         self.hp = hp
         self.atk = atk
         self.dfd = dfd
+
+    def entity_type(self):
+        return "Entity"
         
     def fight(self, B):
         A = self
@@ -43,7 +47,8 @@ class Entity:
             A, B = B, A # Malignant
             a_dmg, b_dmg = b_dmg, a_dmg
 
-
+    def invoke_event(self, player, out, first_time):
+        raise NotImplementedError()
 
 
 class Monster(Entity):
@@ -51,6 +56,26 @@ class Monster(Entity):
         super(Monster, self).__init__(name, hp, atk, dfd)
         self.exp = exp
         self.coin = coin
+    
+    def entity_type(self):
+        return "小怪"
+
+    def invoke_event(self, player, out, first_time):
+        said_msg = None
+        said_msg = out.send_meet(player.name, self.entity_type(), self.name, said_msg)
+       
+        res = player.fight(self)
+        said_msg = out.send_fight_result(res, said_msg)
+        if self.hp <= 0:
+            said_msg = out.send_beat(player.name, self.name, self.coin, self.exp, said_msg)
+            said_msg = player.add_exp(self.exp, out, said_msg)
+            player.coin += self.coin
+        elif player.hp <= 0:
+            said_msg = out.send_beaten(player.name, self.name, said_msg)
+            player.restart()
+        else :
+            said_msg = out.send_tie(said_msg)
+        return True
 
 class Boss(Monster):
     def __init__(self, name, atk, dfd, hp, exp, coin, drop_item):
@@ -59,6 +84,37 @@ class Boss(Monster):
             self.drop_item = (Weapon(drop_item[0]), Armor(drop_item[1]))
         else:
             self.drop_item = (None, None)
+    
+    def entity_type(self):
+        return "首領"
+
+    def invoke_event(self, player, out, first_time):
+        said_msg = None
+        said_msg = out.send_meet(player.name, self.entity_type(), self.name, said_msg)
+
+        res = player.fight(self)
+        said_msg = out.send_fight_result(res, said_msg)
+        if self.hp <= 0: # boss was beaten
+            said_msg = out.send_beat(player.name, self.name, self.coin, self.exp, said_msg)
+            said_msg = player.level_to(min(10*(player.phase()+1) + 1, 40), out, said_msg)
+            if(player.phase() == 3):
+                said_msg = out.send_congrats_clear(player.name, said_msg)
+                return "Starburst"
+            drop_weapon, drop_armor = self.drop()
+            if drop_weapon:
+                player.unused_weapons.append(drop_weapon)
+                player.unused_armors.append(drop_armor)
+                said_msg = out.send_last_strike(player.name, drop_weapon.name, drop_armor.name, said_msg)
+            said_msg = player.add_exp(self.exp, out, said_msg)
+            player.coin += self.coin
+        elif player.hp <= 0:
+            said_msg = out.send_beaten(player.name, self.name, said_msg)
+            player.restart()
+        else:
+            said_msg = out.send_tie(said_msg)
+            player.restart()
+        return True
+
     def drop(self):
         dropped = self.drop_item
         self.drop_item = (None, None)

@@ -1,17 +1,34 @@
-from random import randrange
+from abc import ABC, abstractmethod
 
 from num2words.lang_AR import ARABIC_ONES
 from Data import Pending, BlacksmithParams, Shops, Potions
 from Item import Item, Weapon, Armor, Potion
 
+class Event(ABC):
+    @abstractmethod
+    def invoke_event(self, player, out, first_time):
+        pass
 
-class Chest:
+class Chest(Event):
     def __init__(self, coin, weapon):
         self.coin = coin
         self.weapon = weapon
-class EventCanEnd:
-    pass
-class Shop(EventCanEnd):
+    
+    def invoke_event(self, player, out, first_time):
+        said_msg = None
+        player.recieve(self.coin)
+        print("fok yu")
+        if self.weapon is None :
+            said_msg = out.send_find_chest(player.name, self.coin, message=said_msg)
+        else:
+            said_msg = out.send_find_chest(player.name, self.coin, self.weapon.name, said_msg)
+            if isinstance(self.weapon, Weapon):
+                player.unused_weapons.append(self.weapon)
+            else:
+                player.unused_armors.append(self.weapon)
+        return True
+
+class Shop(Event):
     def __init__(self, phase):
         self.goods = []
         self.price = []
@@ -41,8 +58,18 @@ class Shop(EventCanEnd):
         else:
             player.potions.append(item)
         return True
+    
+    def invoke_event(self, player, out, first_time):
+        said_msg = None
+        if first_time:
+            said_msg = out.send_reach_shop(player.name, said_msg)
+        said_msg = out.send_shop_items(self.goods, self.price, said_msg)
+        player.pending = Pending.SHOP
+        if self not in player.on_hand:
+            player.on_hand.append(self)
+        return False
 
-class Blacksmith(EventCanEnd):
+class Blacksmith(Event):
     def __init__(self, phase):
         self.upgrade, self.multi, self.add = BlacksmithParams[phase]
     def get_cost(self, item):
@@ -68,3 +95,13 @@ class Blacksmith(EventCanEnd):
             return True
         else:
             return False
+
+    def invoke_event(self, player, out, first_time):
+        said_msg = None
+        if first_time:
+            said_msg = out.send_reach_blacksmith(player.name, said_msg)
+        said_msg = out.send_blacksmith_service(self.upgrade, self.get_cost(player.weapon), self.get_cost(player.armor), said_msg)
+        player.pending = Pending.BLACKSMITH
+        if self not in player.on_hand:
+            player.on_hand.append(self)
+        return False

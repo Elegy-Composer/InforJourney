@@ -13,14 +13,6 @@ from collections import deque
 #                    [InlineKeyboardButton(text='Leave', callback_data='end')],
 #                ])
 
-def Entity_type(entity):
-    if isinstance(entity, Boss):
-        return "首領"
-    elif isinstance(entity, Monster):
-        return "小怪"
-    else:
-        return "玩家"
-
 def chinese(data):
     count = 0
     for s in data:
@@ -54,81 +46,30 @@ class Player(Entity):
             if self.pos in Positions["Boss"]:
                 break
     #def recieve(self)
-    
+
+    def entity_type(self):
+        return "玩家"
+
+    def invoke_event(self, player, out, first_time):
+        # if this is triggered, it means someone meet this player and fight him
+        said_msg = None
+        said_msg = out.send_meet(player.name, self.entity_type(), self.name, said_msg)
+
+        res = player.fight(self)
+        said_msg = out.send_fight_result(res, said_msg)
+        if self.hp <= 0: # the player was beaten 
+            said_msg = out.send_beat(player.name, self.name, said_msg)
+            self.restart()
+        elif player.hp <= 0: # opponent player was beaten
+            said_msg = out.send_beaten(player.name, self.name, said_msg)
+            player.restart()
+        else :
+            said_msg = out.send_tie(said_msg)
+        return True
+
     def meet(self, event, out, first_time=False):
         print("meet")
-        said_msg = None
-        
-        if isinstance(event, Gen):
-            return self.meet(event.gen(self.lvl,self.phase()),out)
-        if isinstance(event,Entity):
-            said_msg = out.send_meet(self.name, Entity_type(event), event.name, said_msg)
-            print("after send_meet, said_msg:")
-            if said_msg:
-                print(said_msg)
-            else:
-                print("None")
-            res = self.fight(event)
-            said_msg = out.send_fight_result(res, said_msg)
-            print(self.hp, event.hp)
-            if event.hp <= 0: # Win
-                if isinstance(event, Monster):
-                    said_msg = out.send_beat(self.name, event.name, event.coin, event.exp, said_msg)
-                    if(isinstance(event, Boss)):
-                        said_msg = self.level_to(min(10*(self.phase()+1) + 1, 40), out, said_msg)
-                        if(self.phase() == 3):
-                            said_msg = out.send_congrats_clear(self.name, said_msg)
-                            return "Starburst"
-                        drop_weapon, drop_armor = event.drop()
-                        if drop_weapon:
-                            self.unused_weapons.append(drop_weapon)
-                            self.unused_armors.append(drop_armor)
-                            said_msg = out.send_last_strike(self.name, drop_weapon.name, drop_armor.name, said_msg)
-                    said_msg = self.add_exp(event.exp, out, said_msg)
-                    self.coin += event.coin
-                else:
-                    said_msg = out.send_beat(self.name, event.name, said_msg)
-                    event.restart()
-            elif self.hp <= 0:
-                said_msg = out.send_beaten(self.name, event.name, said_msg)
-                self.restart() 
-            else :
-                said_msg = out.send_tie(said_msg)
-                if isinstance(event, Boss):
-                    self.restart()
-            return True
-        if isinstance(event, Shop):
-            if first_time:
-                said_msg = out.send_reach_shop(self.name, said_msg)
-            said_msg = out.send_shop_items(event.goods, event.price, said_msg)
-            self.pending = Pending.SHOP
-            if event not in self.on_hand:
-                self.on_hand.append(event)
-            return False
-        if isinstance(event, Blacksmith):
-            if first_time:
-                said_msg = out.send_reach_blacksmith(self.name, said_msg)
-            said_msg = out.send_blacksmith_service(event.upgrade, event.get_cost(self.weapon), event.get_cost(self.armor), said_msg)
-            self.pending = Pending.BLACKSMITH
-            if event not in self.on_hand:
-                self.on_hand.append(event)
-            return False
-        elif(isinstance(event, Chest)):
-            self.recieve(event.coin)
-            print("fok yu")
-            if event.weapon is None :
-                said_msg = out.send_find_chest(self.name, event.coin, message=said_msg)
-            else:
-                said_msg = out.send_find_chest(self.name, event.coin, event.weapon.name, said_msg)
-                #self.ask_change(event.weapon,say)
-                if isinstance(event.weapon, Weapon):
-                    self.unused_weapons.append(event.weapon)
-                else:
-                    self.unused_armors.append(event.weapon)
-            return True
-        else:
-            pprint(event)
-            return True
+        return event.invoke_event(self, out, first_time)
 
     # not in use
     # def ask_change(self,item,say):
